@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Handler for the custom larvis:// URL scheme used by the Larvis web app.
+#
+# The web app links to:  larvis://open?path=<url-encoded absolute path>
+# This script decodes the path and opens a terminal there running `claude`
+# (Claude Code). Registered via scripts/install-larvis-handler.sh.
+#
+# Invoked by the desktop environment as:  larvis-open "larvis://open?path=..."
+set -euo pipefail
+
+url="${1:-}"
+
+note() { command -v notify-send >/dev/null 2>&1 && notify-send "Larvis" "$1" || echo "Larvis: $1" >&2; }
+
+# --- extract the path= query parameter -------------------------------------
+query="${url#*\?}"
+encoded=""
+IFS='&' read -ra pairs <<<"$query"
+for pair in "${pairs[@]}"; do
+  if [ "${pair%%=*}" = "path" ]; then encoded="${pair#*=}"; fi
+done
+
+if [ -z "$encoded" ]; then
+  note "Kein Pfad in der URL: $url"
+  exit 1
+fi
+
+# --- url-decode ------------------------------------------------------------
+decoded="${encoded//+/ }"
+printf -v dir '%b' "${decoded//%/\\x}"
+
+if [ ! -d "$dir" ]; then
+  note "Ordner existiert nicht: $dir"
+  exit 1
+fi
+
+# --- launch a terminal at the folder, running claude -----------------------
+# Keep the shell open after claude exits so output stays visible.
+inner="cd $(printf '%q' "$dir") && claude; exec \"\$SHELL\""
+
+launch() { setsid "$@" >/dev/null 2>&1 & }
+
+if command -v gnome-terminal >/dev/null 2>&1; then
+  launch gnome-terminal --working-directory="$dir" -- bash -lc "$inner"
+elif command -v konsole >/dev/null 2>&1; then
+  launch konsole --workdir "$dir" -e bash -lc "$inner"
+elif command -v xfce4-terminal >/dev/null 2>&1; then
+  launch xfce4-terminal --working-directory="$dir" -x bash -lc "$inner"
+elif command -v kitty >/dev/null 2>&1; then
+  launch kitty --directory "$dir" bash -lc "$inner"
+elif command -v alacritty >/dev/null 2>&1; then
+  launch alacritty --working-directory "$dir" -e bash -lc "$inner"
+elif command -v tilix >/dev/null 2>&1; then
+  launch tilix --working-directory="$dir" -e bash -lc "$inner"
+elif command -v x-terminal-emulator >/dev/null 2>&1; then
+  launch x-terminal-emulator -e bash -lc "$inner"
+elif command -v xterm >/dev/null 2>&1; then
+  launch xterm -e bash -lc "$inner"
+else
+  note "Kein bekanntes Terminal gefunden. Bitte scripts/larvis-open anpassen."
+  exit 1
+fi

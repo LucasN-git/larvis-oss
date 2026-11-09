@@ -1,0 +1,272 @@
+/* ==========================================================================
+   Notizen: Icon, Lese-/Bearbeiten-/Graph-Umschalter, Versionsleiste,
+   Versionsvergleich und Themen-Graph. Nur Tokens aus theme/tokens.ts.
+   ========================================================================== */
+
+/* ---- Baum: Emoji statt Datei-/Ordnersymbol ---- */
+.tree-row__emoji {
+  width: 16px;
+  font-size: 15px;
+  line-height: 1;
+  text-align: center;
+}
+
+/* ---- Kopf: Icon + Umschalter ---- */
+.note-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+.note-head__modes { flex: 0 1 auto; }
+.note-head__new { margin-left: auto; }
+
+.note-icon-wrap { position: relative; flex: none; }
+.note-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--well);
+  color: var(--text-muted);
+  font-size: 22px;
+  line-height: 1;
+}
+button.note-icon:hover { color: var(--text); box-shadow: var(--shadow-ring); }
+.note-icon--static { background: transparent; }
+.note-icon-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: 248px;
+  padding: var(--space-sm);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-out-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.note-icon-pop__grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
+.note-icon-pop__opt {
+  height: 34px;
+  border-radius: var(--radius-sm);
+  font-size: 19px;
+  line-height: 1;
+}
+.note-icon-pop__opt:hover { background: var(--surface); }
+.note-icon-pop__opt[aria-pressed='true'] { background: var(--accent-soft); }
+.note-icon-pop__input { flex: 1; min-width: 0; }
+
+/* ---- Lesemodus ---- */
+.note-read__title { font-size: 20px; line-height: 1.25; letter-spacing: -0.01em; }
+
+/* ---- Versionsleiste ---- */
+.note-versions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--separator);
+}
+.note-versions__chips {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+}
+.note-versions__chip {
+  font-size: 12.5px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.note-versions__chip:not(.chip--active):hover { color: var(--text); background: var(--surface); }
+.note-versions__actions { display: flex; gap: 2px; margin-left: auto; }
+.note-versions__actions .btn[aria-pressed='true'] { background: var(--surface); color: var(--text); }
+
+/* ---- Eingefrorene Version ---- */
+.note-frozen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  margin-bottom: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--well);
+  color: var(--text-muted);
+  font-size: 13.5px;
+}
+.note-frozen__link {
+  margin-left: auto;
+  color: var(--accent);
+  font-weight: 600;
+}
+.note-frozen__link:hover { text-decoration: underline; }
+
+/* ---- Versionsvergleich ---- */
+.note-diff__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+.note-diff__pick { display: flex; align-items: center; gap: 8px; font-size: 13.5px; flex-wrap: wrap; }
+.note-diff__select { width: auto; min-width: 140px; }
+.note-diff__stats { display: flex; gap: 10px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.note-diff__stat--add { color: var(--success); font-weight: 600; }
+.note-diff__stat--del { color: var(--danger); font-weight: 600; }
+.note-diff {
+  margin: 0;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--well);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text);
+}
+.note-diff__add {
+  text-decoration: none;
+  background: var(--success-soft);
+  color: var(--success);
+  border-radius: 3px;
+}
+.note-diff__del {
+  background: var(--danger-soft);
+  color: var(--danger);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--danger) 60%, transparent);
+  border-radius: 3px;
+}
+/* Zeilenweise: Änderungen als ganze Blöcke statt als Textmarker. */
+.note-diff--lines .note-diff__add,
+.note-diff--lines .note-diff__del { display: block; padding: 0 6px; margin: 0 -6px; }
+
+/* ---- Themen-Graph ---- */
+.graph-view {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+
+  --xy-background-color: var(--card);
+  --xy-background-pattern-color: var(--border-strong);
+  --xy-edge-stroke: var(--text-faint);
+  --xy-edge-stroke-selected: var(--text);
+  --xy-edge-stroke-width: 1.4;
+  --xy-edge-label-background-color: var(--card);
+  --xy-edge-label-color: var(--text-muted);
+  --xy-minimap-background-color: transparent;
+  --xy-attribution-background-color: transparent;
+  --xy-minimap-mask-background-color: color-mix(in srgb, var(--bg) 70%, transparent);
+  --xy-controls-button-background-color: var(--card);
+  --xy-controls-button-background-color-hover: var(--surface);
+  --xy-controls-button-color: var(--text-muted);
+  --xy-controls-button-color-hover: var(--text);
+  --xy-controls-button-border-color: var(--border);
+  --xy-controls-box-shadow: var(--shadow-out-sm);
+}
+.graph-view__main { display: flex; flex-direction: column; gap: var(--space-sm); }
+.graph-view__canvas {
+  height: min(64vh, 620px);
+  min-height: 320px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-ring);
+  overflow: hidden;
+}
+/* Breit genug (Drawer aufgezogen, Desktop): Karte rechts neben dem Graphen. */
+@container (min-width: 720px) {
+  .graph-view__main { flex-direction: row; align-items: stretch; }
+  .graph-view__canvas { flex: 1 1 auto; }
+  .graph-panel { flex: 0 0 260px; max-height: min(64vh, 620px); overflow-y: auto; }
+}
+.graph-view .react-flow__controls { border-radius: var(--radius-sm); overflow: hidden; }
+.graph-view__minimap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-ring); max-width: 160px; }
+.graph-view .react-flow__attribution a { color: var(--text-faint); }
+.graph-view .react-flow__edge-text { font-size: 11px; font-family: var(--font-sans); }
+.graph-view .graph-edge--active .react-flow__edge-path { stroke: var(--text); stroke-width: 2; }
+
+.graph-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--node-color) 14%, var(--card));
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--node-color) 55%, transparent);
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  transition: box-shadow 120ms ease;
+}
+.graph-node:hover { box-shadow: inset 0 0 0 1.5px var(--node-color); }
+.graph-node--active { box-shadow: inset 0 0 0 2px var(--node-color), var(--shadow-focus); }
+.graph-node__label { overflow-wrap: normal; word-break: normal; hyphens: auto; }
+.graph-view .graph-node__handle { opacity: 0; pointer-events: none; width: 1px; height: 1px; min-width: 0; min-height: 0; border: 0; }
+
+.graph-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--inset-card-sm);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-ring);
+}
+.graph-panel__head { display: flex; align-items: center; gap: 8px; }
+.graph-panel__title { flex: 1; font-size: 15.5px; line-height: 1.3; }
+.graph-panel__group { font-size: 12.5px; margin-top: -6px; }
+.graph-panel__note { font-size: 14px; }
+.graph-panel__swatch { flex: none; width: 12px; height: 12px; border-radius: 4px; }
+.graph-panel__swatch--sm { width: 10px; height: 10px; border-radius: 3px; }
+.graph-panel__links { list-style: none; display: flex; flex-direction: column; }
+.graph-panel__link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+.graph-panel__link:hover { background: var(--surface); color: var(--text); }
+.graph-panel__link-label { color: var(--text); font-weight: 500; }
+.graph-panel__rel { margin-left: auto; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.graph-view__foot { display: flex; align-items: center; gap: var(--space-sm); flex-wrap: wrap; }
+.graph-legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--text-muted); }
+.graph-legend__item { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---- Graph als Vollbild-Ebene über der App ---- */
+.graph-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 58; /* über Drawer/Modal (50–55), unter Toasts (60) */
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding: var(--inset-page);
+  background: var(--bg);
+}
+.graph-overlay__head { display: flex; align-items: center; gap: var(--space-sm); }
+.graph-overlay__title { flex: 1; font-size: 17px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.graph-overlay .graph-view { flex: 1 1 auto; min-height: 0; }
+.graph-overlay .graph-view__main { flex: 1 1 auto; min-height: 0; }
+.graph-overlay .graph-view__canvas { flex: 1 1 auto; height: auto; min-height: 280px; }
+.graph-overlay .graph-panel { max-height: 45vh; overflow-y: auto; }
+@container (min-width: 720px) {
+  .graph-overlay .graph-panel { flex: 0 0 300px; max-height: none; }
+}

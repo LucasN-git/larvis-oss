@@ -1,0 +1,946 @@
+/* Feature-level styles (lists, rows, cards). Theme-variable driven.
+
+   Two ways to stack rows:
+   - .group: one card that the rows fill. No inner padding, hairline separators
+     between rows, no ring per row. This is the default for a column of
+     similar entries on a page (ToDos, contacts, Learnweb, …). A heading sits
+     above it as .section-title, outside the frame.
+   - .list: a spaced stack of standalone rows, each its own white surface.
+     Used where the container already is the one frame (modal, sheet) or
+     where rows stand alone on the page. */
+
+.list { display: flex; flex-direction: column; gap: 8px; }
+
+/* ---- Group (iOS grouped list) ----
+   --row-inset moves the left end of the hairline, e.g. to align it with the
+   title instead of the leading check/icon. Set it on the group or a row. */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--card);
+  box-shadow: var(--shadow-out-sm);
+  border-radius: var(--radius-lg);
+  overflow: clip;
+}
+.group--tile { --row-inset: calc(var(--row-pad-x) + 32px + 12px); } /* .icon-tile--sm */
+.group > * { position: relative; }
+.group > * + *::before {
+  content: '';
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  right: 0;
+  left: var(--row-inset, var(--row-pad-x));
+  height: 1px;
+  background: var(--separator);
+  pointer-events: none;
+}
+.group .swipe-wrap,
+.group .item-row {
+  border-radius: 0;
+  box-shadow: none;
+}
+.group .swipe-wrap:hover { box-shadow: none; }
+.group .item-row { background: transparent; }
+/* A swiping row must cover the action hint (.swipe-bg) behind it. */
+.group .swipe-wrap > .item-row { background: var(--card); }
+@media (hover: hover) {
+  .group :is(a, button, [role='button']).item-row:hover,
+  .group .swipe-wrap:hover > .item-row,
+  .group :is(a, button).group__add:hover,
+  .group :is(a, button).group__foot:hover { background: var(--surface); }
+  .group > :is(a, button, [role='button'], .swipe-wrap):hover::before,
+  .group > :is(a, button, [role='button'], .swipe-wrap):hover + *::before { opacity: 0; }
+}
+.group [role='button'].item-row { cursor: pointer; }
+.group :focus-visible:not(.input, .textarea) { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Optional head row inside the frame (title + action), e.g. a widget. */
+.group__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: var(--row-min);
+  padding: var(--row-pad-y) var(--row-pad-x);
+  font-size: 14px;
+  font-weight: 600;
+}
+/* "New …" as the first row: icon in the leading column, label or a bare input. */
+.group__add {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: var(--row-min);
+  padding: var(--row-pad-y) var(--row-pad-x);
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  transition: background 140ms ease;
+}
+.group__add .input,
+.group__add .input:focus {
+  flex: 1;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  color: var(--text);
+}
+/* Footer row: "Alle … (n)", "Kalender öffnen". */
+.group__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: var(--row-min);
+  padding: var(--row-pad-y) var(--row-pad-x);
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  transition: background 140ms ease;
+}
+/* Empty state as a row inside the group. */
+.group__empty {
+  padding: var(--inset-card) var(--row-pad-x);
+  color: var(--text-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Swipe actions: the wrap clips the sliding row and reveals a hint behind it.
+   The class name is load-bearing: AppShell skips its page-swipe gesture on it.
+   Standing alone (in a .list) the wrap carries the row's ring; in a group the
+   group is the frame and the wrap is flat. */
+.swipe-wrap {
+  position: relative;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-out-sm);
+  transition: box-shadow 140ms ease;
+  overflow: hidden;
+}
+.swipe-wrap:hover { box-shadow: 0 0 0 1px var(--border-strong); }
+.swipe-bg {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 22px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* A list row. Standing alone it is its own white surface (radius md); inside
+   a .group it is transparent and square (see .group above). */
+.item-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--row-min);
+  padding: var(--row-pad-y) var(--row-pad-x);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  touch-action: pan-y;
+  transition: background 140ms ease;
+}
+.item-row--snap { transition: transform 200ms ease; }
+.item-row__main { flex: 1; min-width: 0; }
+.item-row__title { font-weight: 500; font-size: 15px; overflow-wrap: anywhere; }
+.item-row__sub { color: var(--text-muted); font-size: 12.5px; margin-top: 2px; }
+
+/* Trailing-Aktionen einer Zeile (Play/Download/Notiz/…). Auf Desktop rechts
+   neben dem Titel, schrumpfen nicht. */
+.item-row__actions { display: flex; align-items: center; gap: var(--space-xs); flex: none; }
+
+/* Handy: Aktionen brechen auf eine eigene Zeile unter dem Titel um, statt den
+   Titel auf ein Zeichen pro Zeile zu quetschen. flex-basis:100% erzwingt den
+   Umbruch (Titel-Basis ist 0, sonst „passen" alle drei nebeneinander). */
+@media (max-width: 639px) {
+  .item-row--wrap { flex-wrap: wrap; }
+  .item-row--wrap .item-row__actions {
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    padding-left: calc(32px + 12px); /* unter dem Titel ausrichten (Icon-Tile + gap) */
+  }
+}
+
+/* Kurs-Header (Learnweb): auf dem Handy nehmen die Aktionen die volle Breite
+   und brechen linksbündig um, statt „Zuletzt…/Synchronisieren" zu überlappen. */
+@media (max-width: 639px) {
+  .lw-course-actions { width: 100%; justify-content: flex-start; }
+}
+
+.more-link { text-decoration: none; }
+
+/* Round checkbox: open ring at rest, solid ink when done. Visually 26 px
+   (28 on touch); the ::after extends the hit area to --tap without moving
+   anything. */
+.check {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--border-strong);
+  display: grid;
+  place-items: center;
+  color: transparent;
+  transition: background 140ms ease, box-shadow 140ms ease, color 140ms ease, transform 120ms ease;
+}
+.check::after {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((100% - var(--tap)) / 2));
+  border-radius: 50%;
+}
+@media (hover: none), (max-width: 639px) {
+  .check { width: 28px; height: 28px; }
+}
+.check:active { transform: scale(0.86); }
+.check:hover { color: var(--text-faint); box-shadow: inset 0 0 0 1.5px var(--text-faint); }
+.check[data-done='true'] {
+  background: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+  color: var(--ink-contrast);
+}
+.done-text { text-decoration: line-through; color: var(--text-muted); }
+
+/* priority dot */
+.prio-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+.quick-add { display: flex; gap: 10px; align-items: center; }
+.quick-add .input { flex: 1; }
+
+.empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: var(--space-xl) var(--space-md);
+  font-size: 14px;
+}
+
+.meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* card grid for notes/projects */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: var(--inset-card);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-out-sm);
+  transition: box-shadow 140ms ease, transform 120ms ease;
+  cursor: pointer;
+  text-align: left;
+  min-height: 120px;
+}
+.tile:hover { box-shadow: 0 0 0 1px var(--border-strong); }
+.tile:active { transform: scale(0.985); }
+.tile__title { font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
+
+/* Project tile + corner "open in VS Code" link (sibling overlay, not nested
+   in the tile button so we don't nest interactive elements). */
+.tile-wrap { position: relative; display: flex; }
+.tile-wrap > .tile { flex: 1; width: 100%; }
+.tile__open {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  background: transparent;
+  transition: background 140ms ease, color 140ms ease;
+}
+.tile__open:hover { background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--text); }
+.tile__open:active { background: var(--well); }
+@media (hover: none), (max-width: 639px) {
+  .tile__open { top: 4px; right: 4px; width: var(--tap); height: var(--tap); }
+}
+.tile__preview {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+/* ---- Notes folder tree ---- */
+.tree {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-ring);
+  padding: 6px;
+  gap: 1px;
+}
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px 4px 6px;
+  border-radius: var(--radius-md);
+  min-height: 34px;
+}
+.tree-row:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.tree-row__twist {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--text-muted);
+}
+.tree-row__twist:hover { color: var(--text); }
+.tree-row__spacer { display: inline-block; width: 15px; height: 15px; }
+.tree-row__icon { flex: none; color: var(--accent); }
+.tree-row__icon--file { color: var(--text-faint); }
+.tree-row__dot { flex: none; width: 11px; height: 11px; border-radius: 4px; }
+.tree-row__label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  overflow: hidden;
+}
+.tree-row__title {
+  font-size: 14.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tree-row__title--project { font-weight: 600; letter-spacing: -0.01em; }
+.tree-row__count {
+  flex: none;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--well);
+  border-radius: var(--radius-tag);
+  padding: 1px 7px;
+  font-variant-numeric: tabular-nums;
+}
+.tree-row__add {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity 120ms ease, background 120ms ease, color 120ms ease;
+}
+.tree-row:hover .tree-row__add { opacity: 1; }
+.tree-row__add:hover { color: var(--text); background: var(--well); }
+@media (hover: none) { .tree-row__add { opacity: 1; } }
+/* Touch: tree rows and their small buttons reach the full tap target. */
+@media (hover: none), (max-width: 639px) {
+  .tree-row { min-height: var(--tap); }
+  .tree-row__add { width: var(--tap); height: var(--tap); }
+}
+
+.full-width { width: 100%; display: flex; }
+.full-width > * { flex: 1; justify-content: center; }
+
+/* Home: stat summary + two-column (content + calendar rail on desktop) */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+.stat {
+  padding: var(--inset-card-sm);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  box-shadow: var(--shadow-out-sm);
+}
+.stat__num { font-size: 30px; font-weight: 600; letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+.stat__label { color: var(--text-muted); font-size: 12.5px; font-weight: 500; margin-top: 6px; }
+
+/* Heute on desktop: content left, the departure board in a 400 px column on the
+   right. Below 1024 px the page is one column. Never put a container on .page
+   or around the Pomodoro card: a container is the containing block for
+   position:fixed descendants and would trap the Pomodoro fullscreen. */
+.home-split { display: grid; gap: var(--gap-section); align-items: stretch; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1024px) {
+  .home-split { grid-template-columns: minmax(0, 1fr) 400px; }
+}
+
+/* Wetter | Bus | Mensa under the ToDos. Sized to the left column's width
+   (container query), not the viewport, since the agenda eats horizontal space.
+   Narrow: stacked. Wide enough: Wetter + Bus on top, Mensa full-width below. */
+.home-left { container: home-left / inline-size; }
+.home-widgets {
+  display: grid;
+  gap: var(--gap-section);
+  align-items: stretch;
+  grid-template-columns: 1fr;
+}
+@container home-left (min-width: 500px) {
+  .home-widgets { grid-template-columns: 1fr 1fr; }
+  .home-widgets > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+
+/* Wetter-Widget (Open-Meteo, Ort aus der Konfiguration) */
+.wx-bigrow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.wx-big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+  padding: var(--space-md) var(--space-sm);
+  border-radius: var(--radius-md);
+  background: var(--well);
+}
+.wx-big__label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.wx-big__icon { color: var(--accent); margin: 2px 0; }
+.wx-big__temp {
+  font-size: clamp(34px, 6vw, 48px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.wx-big__cond { font-size: 13px; color: var(--text-muted); }
+.wx-big__range { font-size: 13.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.wx-big__range small { font-size: 0.9em; font-weight: 400; color: var(--text-muted); }
+.wx-big__precip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.wx-forecast {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+}
+.wx-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  border-radius: var(--radius-md);
+}
+.wx-day__name { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+.wx-day__icon { color: var(--text); opacity: 0.75; }
+.wx-day__max { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wx-day__min { font-size: 12px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------------------
+   Pomodoro-Timer (Heute, unten) + Vollbild-Overlay
+   -------------------------------------------------------------------------- */
+.pomo-modes { margin-bottom: var(--space-md); }
+
+.pomo-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.pomo-ring { position: relative; display: grid; place-items: center; }
+.pomo-ring svg { display: block; }
+.pomo-ring__track { stroke: color-mix(in srgb, var(--text) 9%, transparent); }
+.pomo-ring__bar { transition: stroke-dashoffset 280ms linear, stroke 200ms ease; }
+.pomo-ring__inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.pomo-time {
+  font-size: clamp(38px, 9vw, 52px);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.pomo-mode {
+  font-size: 13px;
+  font-weight: 600;
+}
+.pomo-round {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.pomo-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+.pomo-play { min-width: 116px; }
+
+/* Einstell-Panel: Dauern frei eintippen + als Preset speichern. */
+.pomo-edit {
+  margin-top: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--well);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.pomo-edit__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.pomo-durs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-sm); }
+.pomo-dur {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+/* Inside the grey well the fields sit on card; focus keeps the shared halo. */
+.pomo-dur__input {
+  padding: 8px 10px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.pomo-dur__input:not(:focus),
+.pomo-save .input:not(:focus) {
+  background: var(--card);
+  box-shadow: var(--shadow-ring);
+}
+
+.pomo-presets { display: flex; flex-wrap: wrap; gap: 8px; }
+.pomo-preset {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--border-strong);
+  overflow: hidden;
+  transition: box-shadow 140ms ease, background 140ms ease, color 140ms ease;
+}
+.pomo-preset:hover { background: var(--surface); }
+.pomo-preset[data-active='true'] { background: var(--ink); color: var(--ink-contrast); box-shadow: none; }
+.pomo-preset__apply { padding: 6px 4px 6px 12px; font-size: 13px; font-weight: 500; color: inherit; }
+.pomo-preset__del {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px 6px 5px;
+  color: inherit;
+  opacity: 0.5;
+}
+.pomo-preset__del:hover { opacity: 1; }
+
+.pomo-save { display: flex; gap: 8px; align-items: center; }
+.pomo-save .input {
+  flex: 1;
+  padding: 9px 13px;
+}
+.pomo-save .btn { flex: none; }
+
+/* Vollbild-Overlay: deckt den Viewport, identische Steuerung, größerer Ring. */
+.pomo-fs {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xl);
+  background: var(--bg);
+}
+.pomo-fs__exit { position: absolute; top: var(--space-lg); right: var(--space-lg); }
+.pomo-time--fs { font-size: clamp(64px, 16vw, 168px); }
+.pomo-mode--fs { font-size: clamp(14px, 2.4vw, 22px); }
+.pomo-round--fs { font-size: clamp(14px, 2vw, 18px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pomo-ring__bar { transition: none; }
+}
+
+/* ---- Note attachments: tree rows ---- */
+.tree-row--att:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.tree-row__title--att { font-weight: 400; color: var(--text-muted); }
+.tree-row__attcount {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Inline images in the note preview ---- */
+.inline-img {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: bottom;
+  line-height: 0;
+}
+.inline-img img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-out-sm);
+}
+.inline-img__placeholder {
+  display: block;
+  height: 140px;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  animation: att-pulse 1.2s ease-in-out infinite;
+}
+.inline-img--failed { color: var(--text-muted); font-size: 13px; line-height: 1.4; }
+.inline-img__handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  background: var(--accent);
+  box-shadow: var(--shadow-out-sm);
+  cursor: nwse-resize;
+  opacity: 0;
+  touch-action: none;
+  transition: opacity 120ms ease;
+}
+.inline-img:hover .inline-img__handle { opacity: 1; }
+@media (hover: none) { .inline-img__handle { opacity: 1; } }
+.inline-img__badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  color: #fff;
+  background: rgb(0 0 0 / 0.6);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes att-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+/* ---- Note attachments: editor list ---- */
+.att-drop {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  font-size: 13px;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.att-drop--over { border-color: var(--accent); background: var(--accent-soft); }
+.att-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.att-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+.att-row:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.att-row__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+.att-thumb {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--well);
+  color: var(--text-muted);
+  overflow: hidden;
+}
+.att-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.att-row__meta { min-width: 0; display: flex; flex-direction: column; }
+.att-row__name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.att-row__sub { font-size: 11.5px; color: var(--text-faint); }
+.att-row__actions { flex: none; display: flex; align-items: center; gap: 2px; }
+
+/* ---- Image lightbox ---- */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgb(0 0 0 / 0.82);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+.lightbox__figure {
+  margin: 0;
+  max-width: 92vw;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.lightbox__figure img {
+  max-width: 92vw;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-out-lg);
+}
+.lightbox__figure figcaption { color: #eaeaea; font-size: 13px; }
+.lightbox__close { position: absolute; top: 16px; right: 16px; color: #fff; }
+.lightbox__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #fff;
+}
+.lightbox__nav--prev { left: 12px; }
+.lightbox__nav--next { right: 12px; }
+/* Icon buttons over the photo: dark liquid glass (fixed values, the lightbox is
+   always dark regardless of theme). Blur values stay literal for -webkit-. */
+.lightbox .icon-btn {
+  color: #fff;
+  background: rgba(28, 28, 31, 0.6);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+}
+.lightbox .icon-btn:hover { background: rgba(44, 44, 48, 0.72); color: #fff; }
+
+/* ---- Einträge (Tab Inbox) ---- */
+/* Plattform · Autor · Länge in der Zeile und im Editor. */
+.entry-meta { display: inline-flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 12px; }
+/* Quellenfelder im Editor: zweispaltig, auf dem Handy untereinander. */
+.source-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xs); }
+.source-grid .input { width: 100%; min-width: 0; }
+@media (max-width: 639px) { .source-grid { grid-template-columns: 1fr; } }
+/* Kacheln ab Tablet-Breite: Icon + Titel oben, Beschreibung ganz, der Öffnen-Button
+   unten — margin-top:auto hält ihn in einer Kachelreihe auf gleicher Höhe. */
+.entry-tile__head { display: flex; align-items: center; gap: 10px; }
+.entry-tile__desc { color: var(--text-muted); font-size: 13.5px; line-height: 1.5; }
+/* Eigener Kommentar („warum gespeichert") als Zitat: Akzentlinie wie ein Markdown-Blockquote. */
+.entry-comment {
+  border-left: 2px solid var(--accent);
+  padding-left: 8px;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--text);
+  white-space: pre-line;
+}
+.item-row .entry-comment {
+  margin-top: 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.entry-tile__open { margin-top: auto; align-self: flex-start; }
+/* „→ Learning"-Chip: Link auf die Wiki-Seite, in die der Eintrag einfließt. Dezent im
+   Akzentton, lange Titel werden gekürzt statt die Meta-Zeile zu sprengen. */
+.entry-learning {
+  color: var(--accent);
+  text-decoration: none;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+}
+a.entry-learning:hover { text-decoration: underline; }
+/* Die Learning-Zeilen im Editor sind Links; sie sehen aus wie die übrigen Zeilen. */
+.entry-learnings a.item-row { color: inherit; text-decoration: none; }
+
+/* ---- Dump-Karte (Home): kompakte Zeilen, Datei-Drop, Scan-Status ---- */
+.dump-card { transition: background 120ms ease, box-shadow 120ms ease; }
+.dump-card--over { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+
+.item-row--compact { min-height: var(--tap); padding: 6px 12px; gap: 8px; }
+/* Touch: compact rows keep the full tap height; in a group they align with
+   the other rows. */
+@media (hover: none), (max-width: 639px) {
+  .item-row--compact { padding: var(--row-pad-y) var(--row-pad-x); }
+}
+.group .item-row--compact { padding-left: var(--row-pad-x); padding-right: var(--row-pad-x); }
+.item-row--compact .item-row__title {
+  font-size: 13.5px;
+  font-weight: 500;
+  overflow-wrap: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.item-row--compact .item-row__sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11.5px;
+  flex-wrap: wrap;
+  white-space: normal;
+}
+
+/* Eigener Kommentar zum Item: eine Zeile unter dem Inhalt, kursiv als Zitat. */
+.dump-note {
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* „noch nicht gescannt" markiert die Minderheit und kostet keine Höhe. */
+.dump-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
+
+/* Datei-Link in der Dump-Zeile (Button ohne Rahmen, öffnet die signierte URL). */
+.dump-file { display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 200px; color: var(--text-muted); cursor: pointer; }
+.dump-file:hover { color: var(--accent); }
+.dump-file svg { flex: none; }
+.dump-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Learnings (Wiki): Baum links, Seite rechts; mobil eins von beiden ---- */
+.wiki { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); align-items: start; }
+.wiki__nav { display: flex; flex-direction: column; gap: var(--space-sm); min-width: 0; }
+.wiki__page { min-width: 0; }
+.wiki__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.wiki__crumbs { font-size: 12.5px; color: var(--text-faint); margin-bottom: 6px; }
+.wiki__crumbs a { color: inherit; }
+.wiki__crumbs a:hover { color: var(--accent); }
+.wiki__title { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15; margin: 0 0 4px; }
+.wiki__summary { font-size: 15.5px; color: var(--text-muted); margin: 0 0 6px; }
+.wiki__actions { display: flex; flex-wrap: wrap; gap: 4px; }
+/* Auf dem Handy stehen die Aktionen unter dem Titel, sonst bleibt ihm neben drei Buttons keine Breite. */
+@media (max-width: 639px) { .wiki__actions { flex-basis: 100%; } }
+.wiki__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  font-size: 12.5px;
+  color: var(--text-faint);
+  margin: 8px 0 var(--space-md);
+}
+.wiki__body { font-size: 15px; line-height: 1.6; }
+.wiki__body img { max-width: 100%; }
+.wiki__children { margin-top: var(--space-lg); }
+.wiki__hint { font-size: 12px; color: var(--text-faint); }
+.wiki__error { font-size: 13px; color: var(--danger); }
+.wiki__count { flex: none; font-size: 12px; color: var(--text-faint); white-space: nowrap; }
+/* Belege: Lesesicht gruppiert nach Rolle, im Editor mit Rolle, Kommentar und Suche. */
+.wiki__sources { margin-top: var(--space-lg); }
+.wiki__role { font-size: 12px; font-weight: 600; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.wiki__source-ext { flex: none; color: var(--text-faint); }
+.wiki__area-pick,
+.entry-area-pick { display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+.wiki__area-pick .input,
+.entry-area-pick .input { flex: 1; }
+/* Leerzustand der Bereichs-Chips (Inbox und Wiki), solange es noch keinen Bereich gibt. */
+.area-empty { align-self: center; font-size: 13px; }
+.wiki__source-edit { align-items: flex-start; }
+.wiki__source-comment { padding: 6px 10px; font-size: 13px; }
+.wiki__source-role { width: auto; padding: 6px 10px; font-size: 13px; }
+.wiki__source-hit { width: 100%; border: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.wiki__source-hit:hover { background: color-mix(in srgb, var(--text) 5%, var(--card)); }
+.tree-row--active,
+.tree-row--active:hover { background: color-mix(in srgb, var(--text) 9%, transparent); }
+.tree-row--active .tree-row__title { color: var(--text); font-weight: 600; }
+.link-btn { background: none; border: none; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; }
+@media (min-width: 1024px) {
+  .wiki { grid-template-columns: 280px minmax(0, 1fr); }
+  .wiki__nav { position: sticky; top: var(--space-xl); }
+  .wiki__back { display: none; }
+}
+@media (max-width: 1023px) {
+  .wiki--page .wiki__nav { display: none; }
+  .wiki:not(.wiki--page) .wiki__page { display: none; }
+}

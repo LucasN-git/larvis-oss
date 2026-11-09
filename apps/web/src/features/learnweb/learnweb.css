@@ -1,0 +1,15 @@
+/* Learnweb-Listen (Kurse, Materialien, Ankündigungen, Termine, eLectures)
+   stehen je Abschnitt als eine Gruppe; der Abschnittstitel liegt außen. */
+
+/* Semester-Überschrift zum Auf-/Zuklappen: auf Touch volle Tap-Höhe. */
+.section-title.lw-sem-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 0;
+  cursor: pointer;
+  user-select: none;
+}
+@media (hover: none), (max-width: 639px) {
+  .section-title.lw-sem-toggle { min-height: var(--tap); }
+}

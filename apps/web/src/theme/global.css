@@ -1,0 +1,373 @@
+/* ==========================================================================
+   Larvis global styles + surface system.
+   Palette/radius/space variables are injected at runtime by ThemeProvider
+   from theme/tokens.ts. The values below are the light-theme fallback
+   (correct first paint, no flash).
+
+   Surfaces carry no neumorphism: depth comes from a 1px hairline ring
+   (box-shadow, not border, so nothing shifts and overflow:hidden wrappers
+   follow the radius) plus at most a whisper of shadow. Only floating layers
+   (popovers, modal, drawer, toast) use the larger --shadow-out-lg.
+
+   Spacing rule: at most one framed layer sits between the screen edge and the
+   content. A card that carries a list is a group (.group in features.css):
+   no inner padding, rows fill it, hairline separators instead of rings per
+   row. Grey wells (kv-list, inputs, wx-big) do not count as a layer.
+
+   Layout tokens (insets, gaps, row height, tap target) are responsive and
+   therefore live only here, in media queries — not in tokens.ts: the
+   ThemeProvider writes its tokens inline on :root, and an inline value beats
+   every media query. Two viewport thresholds exist, 640 and 900 px (mirrored
+   in theme/breakpoints.ts); the tap target follows the pointer instead.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+  --page: #e9eaec;
+  --bg: #fafafb;
+  --surface: #f4f4f6;
+  --card: #ffffff;
+  --well: #f3f4f6;
+  --text: #18181b;
+  --text-muted: #6b6e76;
+  --text-faint: #a1a4ab;
+  --border: rgba(0, 0, 0, 0.06);
+  --border-strong: rgba(0, 0, 0, 0.1);
+  --ink: #111113;
+  --ink-contrast: #ffffff;
+  --accent: #f05a28;
+  --accent-soft: #fdebe3;
+  --accent-contrast: #ffffff;
+  --success: #1f8f5a;
+  --success-soft: #e6f6ee;
+  --warning: #a86400;
+  --warning-soft: #fdf1dc;
+  --danger: #d23f31;
+  --danger-soft: #fbe7e4;
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-bg-strong: rgba(255, 255, 255, 0.86);
+  --glass-border: rgba(255, 255, 255, 0.6);
+  --scrim: rgba(17, 17, 19, 0.28);
+
+  --radius-tag: 8px;
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-frame: 28px;
+  --radius-pill: 999px;
+
+  --space-xs: 6px;
+  --space-sm: 10px;
+  --space-md: 16px;
+  --space-lg: 28px;
+  --space-xl: 40px;
+
+  --font-sans: 'Plus Jakarta Sans Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Ring + whisper shadow, read by all raised surfaces. */
+  --shadow-ring: 0 0 0 1px var(--border);
+  --shadow-out-sm: var(--shadow-ring), 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-out-lg: var(--shadow-ring), 0 12px 32px rgb(0 0 0 / 0.1), 0 2px 6px rgb(0 0 0 / 0.04);
+  --shadow-focus: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+
+  /* Hairline between rows of a group. Fallback; the theme sets the real value. */
+  --separator: rgba(0, 0, 0, 0.08);
+}
+
+/* ---- Responsive layout tokens (phone values first) ----
+   --inset-page     side padding of a page and the mobile header
+   --inset-card     padding of a card, modal, drawer
+   --inset-card-sm  padding of a small card or stat
+   --gap-section    vertical gap between blocks of a page
+   --row-min/-pad-* height and padding of a list row (.item-row)
+   --tap            minimum hit area: 44 px on touch, 36 px with a mouse */
+:root {
+  --inset-page: 16px;
+  --inset-card: 16px;
+  --inset-card-sm: 12px;
+  --gap-section: 16px;
+  --row-min: 52px;
+  --row-pad-y: 6px;
+  --row-pad-x: 16px;
+  --tap: 44px;
+}
+@media (min-width: 640px) {
+  :root {
+    --inset-page: 24px;
+    --inset-card: 20px;
+    --inset-card-sm: 14px;
+    --gap-section: 20px;
+  }
+}
+@media (min-width: 1024px) {
+  :root {
+    --inset-page: 40px;
+    --inset-card: 24px;
+    --inset-card-sm: 16px;
+    --gap-section: 28px;
+    --row-min: 48px;
+    --row-pad-y: 8px;
+  }
+}
+@media (pointer: fine) {
+  :root { --tap: 36px; }
+}
+
+/* Dark: cards stand off the canvas by color, so small shadows are ring only. */
+:root[data-theme='dark'] {
+  --separator: rgba(255, 255, 255, 0.1);
+  --shadow-out-sm: var(--shadow-ring);
+  --shadow-out-lg: var(--shadow-ring), 0 16px 40px rgb(0 0 0 / 0.5);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  /* Let flex/grid children shrink instead of forcing the layout wider than the
+     screen — the main cause of horizontal overflow with long text. */
+  min-width: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Statisches App-Verhalten: das Dokument selbst scrollt nie. Inhalte scrollen
+   in eigenen Containern (.app-scroll, .drawer__body, …). Kein Bounce, kein
+   Pull-to-Refresh, keine mitscrollende Browser-Chrome — Native-App-Gefühl. */
+html,
+body {
+  overflow: hidden;
+  overscroll-behavior: none;
+  max-width: 100%;
+}
+/* Fixed body: verhindert auf iOS das Mitscrollen/Bouncen des Dokuments
+   endgültig (overflow:hidden allein reicht dort nicht). */
+body {
+  position: fixed;
+  inset: 0;
+}
+
+/* Höhe des sichtbaren Bereichs. Auf Touch-Geräten schreibt lib/visualViewport.ts
+   den Ausschnitt über der Bildschirmtastatur nach --vv-top/--vv-h: body, App-Hülle
+   und Sheets hängen daran, damit nichts hinter der Tastatur liegt und das Feld,
+   in dem man tippt, sichtbar bleibt. Ohne Tastatur ist --vv-h die volle Höhe. */
+:root { --app-h: 100dvh; }
+@media (pointer: coarse) {
+  :root { --app-h: var(--vv-h, 100dvh); }
+  body {
+    top: var(--vv-top, 0px);
+    bottom: auto;
+    height: var(--app-h);
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-size: 14.5px;
+  line-height: 1.5;
+  /* Break overlong words/URLs onto the next line instead of overflowing. */
+  overflow-wrap: anywhere;
+  /* Kein grauer Tap-Blitz auf iOS/Android — Feedback kommt von den
+     :active-Styles der Elemente selbst. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* --------------------------------------------------------------------------
+   Surface utilities.
+   -------------------------------------------------------------------------- */
+.card {
+  background: var(--card);
+  box-shadow: var(--shadow-out-sm);
+  border-radius: var(--radius-lg);
+}
+
+.card--flat {
+  background: var(--well);
+  border-radius: var(--radius-md);
+}
+
+/* Liquid glass for layers that float over content (bottom nav, toast, modal,
+   drawer). Blur values stay literal: var() inside the -webkit- prefixed
+   property is unreliable in Safari. A parent with opacity < 1 or a filter
+   stops the blur, so glass must never sit inside such an element. */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+  isolation: isolate;
+  box-shadow: inset 0 0 0 1px var(--glass-border), 0 8px 28px rgb(0 0 0 / 0.1);
+}
+.glass--strong {
+  background: var(--glass-bg-strong);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass,
+  .glass--strong {
+    background: var(--card);
+  }
+}
+
+/* Icon tile: rounded square on the grey well, holds a single icon. */
+.icon-tile {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--well);
+  color: var(--text-muted);
+}
+.icon-tile--sm {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+}
+/* Sparingly: one highlighted tile per view at most. */
+.icon-tile--accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Key-value well: label left (muted), value right (strong), hairline between rows. */
+.kv-list {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 14px;
+  border-radius: var(--radius-md);
+  background: var(--well);
+}
+.kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: 10px 0;
+  font-size: 13.5px;
+}
+.kv + .kv {
+  border-top: 1px solid var(--border);
+}
+.kv__label {
+  color: var(--text-muted);
+  flex: none;
+}
+.kv__value {
+  color: var(--text);
+  font-weight: 550;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+/* Status: dot + text instead of a coloured pill. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.status::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.status--success { color: var(--success); }
+.status--warning { color: var(--warning); }
+.status--danger { color: var(--danger); }
+.status--accent { color: var(--accent); }
+
+/* Big figure: tabular numbers; a trailing <small> ("/24", "%") is smaller and muted. */
+.num-big {
+  font-size: clamp(32px, 4vw, 40px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.num-big small {
+  font-size: 0.4em;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+/* Focus ring that respects the accent. */
+:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 2px;
+}
+
+/* Thin, theme-aware scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-faint) transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--text-faint);
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Utility helpers used across features. */
+.text-muted {
+  color: var(--text-muted);
+}
+.text-accent {
+  color: var(--accent);
+}
+.mono {
+  font-family: var(--font-mono);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

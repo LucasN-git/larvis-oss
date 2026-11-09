@@ -1,0 +1,70 @@
+/* Heute-Seite: nur was über die gemeinsamen Klassen (.group, .home-split,
+   .stack-section) hinausgeht. */
+
+/* KPI-Leiste als eine Gruppe: Zellen nebeneinander, getrennt durch senkrechte
+   Hairlines statt der waagerechten Zeilentrenner einer Gruppe. Die Zelle ist
+   flach, den Rahmen trägt die Gruppe. */
+.group.today-stats {
+  flex-direction: row;
+}
+.group.today-stats > .stat {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: var(--inset-card-sm) var(--inset-card);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.group.today-stats > * + *::before {
+  top: var(--inset-card-sm);
+  bottom: var(--inset-card-sm);
+  left: 0;
+  right: auto;
+  width: 1px;
+  height: auto;
+}
+
+/* Titel der ToDo-Liste: Anzahl und Überfällige neben dem Namen. */
+.today-todos__title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.today-todos__count {
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.today-todos__overdue {
+  color: var(--danger);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tafel rechts neben dem Inhalt: nur im zweispaltigen Split klebt sie oben und
+   scrollt innen, wenn der Tag länger ist als der Viewport. */
+@media (min-width: 1024px) {
+  .today-board {
+    position: sticky;
+    top: var(--inset-page);
+    align-self: start;
+    max-height: calc(var(--app-h) - 2 * var(--inset-page));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Dump: aufklappbarer Titel außerhalb des Rahmens. */
+.dump__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+/* Eingabezeilen: die Icon-Knöpfe rücken an den rechten Rand. */
+.dump__add {
+  gap: 4px;
+  padding-right: calc(var(--row-pad-x) - 8px);
+}
+.dump__pending {
+  padding: var(--row-pad-y) var(--row-pad-x);
+}

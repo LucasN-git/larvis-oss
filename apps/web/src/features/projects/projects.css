@@ -1,0 +1,140 @@
+/* Projects: the project list (tiles + "Persönlich" row) and the project page.
+   Builds on .group / .item-row / .tile from features.css; only what those two
+   pages need beyond that lives here. */
+
+/* Colour dot leading a project row. */
+.project-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+/* ---- Project list ---- */
+
+/* "Persönlich": one row in a .group--tile, the icon tile in the project colour. */
+.project-row { width: 100%; text-align: left; }
+.project-row .item-row__title,
+.project-row .item-row__sub { display: block; }
+.project-row__count { flex: none; color: var(--text-muted); font-size: 12.5px; }
+.project-row__chevron { flex: none; color: var(--text-muted); }
+@media (max-width: 639px) {
+  .project-row__count { display: none; }
+}
+
+/* Tile: a 4px bar in the project colour on the left. The title button
+   stretches over the whole tile (::after), so the tile stays one click target
+   while the sub-project chips above it remain their own buttons. */
+.project-tile__body {
+  position: relative;
+  min-height: 0;
+  padding-left: calc(var(--inset-card) + 4px);
+  overflow: hidden;
+}
+.project-tile__body::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--project-color, var(--accent));
+}
+.project-tile__link { text-align: left; color: inherit; }
+.project-tile__link::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+.project-tile__link:focus-visible { outline: none; }
+.project-tile__link:focus-visible::after { outline: 2px solid var(--accent); outline-offset: -2px; }
+.project-tile--muted { opacity: 0.75; }
+.project-tile .tile__open { z-index: 2; }
+.project-tile__foot {
+  margin-top: auto;
+  padding-top: 4px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+/* Tile title leaves room for the corner "open in VS Code" link. */
+.project-tile__head { display: block; padding-right: 30px; }
+@media (hover: none), (max-width: 639px) {
+  .project-tile__head { padding-right: 34px; }
+}
+
+/* Sub-project chips: dot + name, each its own link. */
+.project-chips {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.project-chip {
+  gap: 6px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 140ms ease;
+}
+.project-chip:hover { background: color-mix(in srgb, var(--text) 9%, var(--well)); }
+.project-chip__dot { flex: none; width: 8px; height: 8px; border-radius: 3px; }
+.project-chip--add { color: var(--text-muted); gap: 4px; }
+
+/* ---- Project page ---- */
+
+.project-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--gap-section);
+}
+.project-head__swatch { flex: none; width: 16px; height: 16px; border-radius: 5px; }
+.project-head__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-head__actions { display: flex; align-items: center; gap: var(--space-sm); margin-left: auto; flex: none; }
+
+.project-intro { display: flex; flex-direction: column; gap: 6px; }
+.project-intro__parent { color: var(--text-muted); font-size: 13px; }
+.project-intro__parent a { color: var(--text); }
+
+/* Description: one line until clicked. */
+.project-desc {
+  display: block;
+  width: 100%;
+  text-align: left;
+  color: var(--text-muted);
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.project-desc:hover { color: var(--text); }
+.project-desc--open { white-space: normal; cursor: auto; color: var(--text); }
+.project-desc__toggle { margin-top: 4px; color: var(--text-muted); font-size: 12.5px; }
+.project-desc__toggle:hover { color: var(--text); }
+
+/* Desktop: notes as the main pane, todos in a sticky column on the right. */
+.project-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--gap-section);
+  align-items: start;
+}
+.project-split__side {
+  position: sticky;
+  top: var(--space-md);
+  max-height: calc(100vh - 2 * var(--space-md));
+  overflow-y: auto;
+}
+@media (max-width: 1023px) {
+  .project-split { grid-template-columns: minmax(0, 1fr); }
+  .project-split__side { position: static; max-height: none; }
+}
+/* Line the "ToDos" title up with the notes header (title + 32px buttons). */
+.project-split__side > .section-title {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  margin-bottom: var(--space-md);
+}

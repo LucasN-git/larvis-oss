@@ -1,0 +1,13 @@
+# Muster mit führendem Slash sind an die Kontextwurzel gebunden. Ohne ihn träfe
+# "notes" auch apps/web/src/features/notes/ und der Build bräche.
+node_modules
+**/node_modules
+/apps/web/dist
+/apps/web/dist-api
+/packages/*/dist
+.git
+.env*
+/material
+/claudeai-skills
+/.claude
+*.log

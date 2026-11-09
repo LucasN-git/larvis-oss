@@ -1,0 +1,212 @@
+/* Einstellungen → Benachrichtigungen (NotificationSettings). Mobile first:
+   Chips und Aktionen brechen um, nichts scrollt seitlich. */
+
+.notif { display: flex; flex-direction: column; }
+
+/* ---- Abschnitte: Dieses Gerät, Worüber, Geräte, Zuletzt gesendet ---- */
+.notif-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  padding-block: var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+.notif-section:first-child { padding-top: 2px; border-top: none; }
+.notif-section:last-child { padding-bottom: 0; }
+.notif-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  min-height: 22px; /* Platz für die Speicher-Anzeige, damit nichts springt */
+}
+.notif-section__title {
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.notif-note { font-size: 14px; color: var(--text-muted); }
+.notif-hint { font-size: 12.5px; line-height: 1.45; color: var(--text-muted); }
+
+/* Inline-Rückmeldung. Leer ohne Höhe und ohne den Abstand der Spalte, bleibt
+   aber als Live-Region im DOM. */
+.notif-feedback { font-size: 13px; color: var(--text-muted); }
+.notif-feedback:empty { margin-top: calc(-1 * var(--space-sm)); }
+.notif-feedback--success { color: var(--success); }
+.notif-feedback--error { color: var(--danger); }
+
+/* ---- Dieses Gerät ---- */
+.notif-device {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm) var(--space-md);
+  min-height: 40px; /* gleiche Höhe beim Prüfen wie mit Button */
+}
+.notif-device__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 14.5px;
+  font-weight: 500;
+}
+.notif-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
+}
+.notif-device__actions { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+@media (max-width: 639px) {
+  .notif-device .btn--primary { width: 100%; }
+}
+
+/* iOS-Installationsanleitung */
+.notif-install {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  padding-left: 1.3em;
+  font-size: 14px;
+}
+.notif-install__icon { display: inline; vertical-align: -2px; color: var(--text-muted); }
+
+/* ---- Worüber: Themen mit Schalter, darunter ihre Presets ---- */
+.notif-fieldset { border: none; min-width: 0; }
+.notif-topics { display: flex; flex-direction: column; }
+.notif-topic {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-block: 12px;
+}
+.notif-topic:first-child { padding-top: 4px; }
+.notif-topic + .notif-topic { border-top: 1px solid var(--border); }
+.notif-topic__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.notif-topic__text { display: flex; flex-direction: column; gap: 2px; }
+.notif-topic__title { font-size: 15px; font-weight: 500; }
+.notif-topic__desc { font-size: 12.5px; line-height: 1.4; color: var(--text-muted); }
+.notif-topic__options { display: flex; flex-direction: column; gap: 10px; }
+
+/* Schalter nach Vorbild .theme-switch (Pill als bewusste Ausnahme); an = Ink. */
+.notif-switch {
+  --sw-w: 46px;
+  --sw-h: 28px;
+  --sw-pad: 3px;
+  position: relative;
+  flex: none;
+  width: var(--sw-w);
+  height: var(--sw-h);
+  padding: 0;
+  border-radius: var(--radius-pill);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--border);
+  transition: background 160ms ease, box-shadow 160ms ease;
+}
+/* Größere Tippfläche, ohne das Layout zu verändern. */
+.notif-switch::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+.notif-switch__knob {
+  position: absolute;
+  top: var(--sw-pad);
+  left: var(--sw-pad);
+  width: calc(var(--sw-h) - 2 * var(--sw-pad));
+  height: calc(var(--sw-h) - 2 * var(--sw-pad));
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: var(--shadow-out-sm);
+  transition: transform 180ms ease;
+}
+.notif-switch[aria-checked='true'] { background: var(--ink); box-shadow: none; }
+.notif-switch[aria-checked='true'] .notif-switch__knob {
+  transform: translateX(calc(var(--sw-w) - var(--sw-h)));
+}
+
+/* Preset-Optionen in Segment-Optik wie .segmented, aber umbrechend. */
+.notif-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.notif-option__label { font-size: 12px; font-weight: 500; color: var(--text-muted); }
+.notif-option__hint { font-weight: 400; }
+.notif-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  max-width: 100%;
+  border-radius: var(--radius-md);
+  background: var(--well);
+}
+.notif-chip {
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: background 140ms ease, box-shadow 140ms ease, color 140ms ease;
+}
+@media (hover: hover) {
+  .notif-chip:hover:not(:disabled) { color: var(--text); }
+}
+.notif-chip[aria-pressed='true'] {
+  color: var(--text);
+  background: var(--card);
+  box-shadow: var(--shadow-ring);
+}
+.notif-chip:disabled,
+.notif-switch:disabled { cursor: not-allowed; opacity: 0.55; }
+
+/* ---- Listen: Geräte und Verlauf ---- */
+.notif-list { list-style: none; display: flex; flex-direction: column; }
+.notif-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding-block: 10px;
+}
+.notif-list__item:first-child { padding-top: 0; }
+.notif-list__item:last-child { padding-bottom: 0; }
+.notif-list__item + .notif-list__item { border-top: 1px solid var(--border); }
+.notif-list__main { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.notif-list__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 14.5px;
+  font-weight: 500;
+}
+.notif-list__body {
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.notif-list__sub { font-size: 12px; color: var(--text-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .notif-switch,
+  .notif-switch__knob,
+  .notif-chip { transition: none; }
+}

@@ -1,0 +1,233 @@
+name: Release
+
+# Baut das Produktions-Image nach GHCR und rollt es per SSH auf den eigenen Server aus. Auf der
+# Box wird nur gepullt: der Vite-Build braucht Speicher, den dort die eigene Supabase braucht.
+#
+# Läuft nur von Hand (Actions -> Release -> Run workflow), bis alles eingerichtet ist; wer
+# automatisch ausrollen will, ergänzt unter "on:" zusätzlich "push: branches: [main]". Es gibt kein
+# Staging; der Rückweg ist der vorherige Tag in /opt/larvis/.env (APP_TAG_VORHER).
+#
+# Nötige Repository-Variablen: APP_IMAGE (z. B. ghcr.io/<github-user>/larvis, klein geschrieben),
+# APP_URL (z. B. https://larvis.example.com), VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
+# VITE_VAPID_PUBLIC_KEY. Nötige Secrets: DEPLOY_SSH_KEY, DEPLOY_HOST, DEPLOY_USER,
+# DEPLOY_KNOWN_HOSTS. Optionale Variablen für Ort und Module: VITE_WEATHER_PLACE,
+# VITE_WEATHER_LAT, VITE_WEATHER_LON, VITE_HOME_PLACE, VITE_LEARNWEB_ENABLED, VITE_MENSA_CANTEENS,
+# VITE_BUS_STOP_ID, VITE_BUS_STOP_NAME, VITE_BUS_HBF_MINUTES (leer = aus).
+#
+# Die Prüfungen aus ci.yml laufen als erster Schritt und blockieren alles Weitere.
+#
+# Das Image trägt die öffentliche Client-Konfiguration fest eingebaut (Build-Args): welches
+# Backend der Browser anspricht, der anon-Schlüssel, der öffentliche VAPID-Schlüssel. Diese
+# Werte sind Repository-Variablen (Settings -> Variables), keine Secrets: sie stehen ohnehin in
+# jedem ausgelieferten Bundle. Die Secrets der Serverseite bleiben allein in /opt/larvis/.env.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write # zum Schreiben nach ghcr.io
+
+env:
+  REGISTRY: ghcr.io
+  APP_IMAGE: ${{ vars.APP_IMAGE }}
+  APP_URL: ${{ vars.APP_URL }}
+
+jobs:
+  pruefen:
+    uses: ./.github/workflows/ci.yml
+
+  image:
+    name: Image bauen und nach GHCR pushen
+    needs: pruefen
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Bei GHCR anmelden
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # "latest" für den letzten Stand von main, dazu immer der volle Commit-Hash
+      # (sha-<40 Zeichen>), damit ein Deploy auf einen bestimmten Stand festgenagelt und ein
+      # Rollback ohne neuen Build gefahren werden kann.
+      - name: Tags bestimmen
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.APP_IMAGE }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=long
+
+      - name: Build-Werte prüfen
+        env:
+          URL: ${{ vars.VITE_SUPABASE_URL }}
+          KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          # Fehlen die Variablen, bricht das Dockerfile ohnehin ab; die Meldung hier sagt, wo sie
+          # hingehören.
+          if [ -z "$URL" ] || [ -z "$KEY" ] || [ -z "$APP_IMAGE" ]; then
+            echo "::error::Repository-Variablen APP_IMAGE, VITE_SUPABASE_URL und VITE_SUPABASE_ANON_KEY fehlen (Settings -> Secrets and variables -> Actions -> Variables)."
+            exit 1
+          fi
+
+      - name: Image bauen und pushen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64 # Server-Architektur; für ARM-Server linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VITE_SUPABASE_URL=${{ vars.VITE_SUPABASE_URL }}
+            VITE_SUPABASE_ANON_KEY=${{ vars.VITE_SUPABASE_ANON_KEY }}
+            VITE_VAPID_PUBLIC_KEY=${{ vars.VITE_VAPID_PUBLIC_KEY }}
+            VITE_WEATHER_PLACE=${{ vars.VITE_WEATHER_PLACE }}
+            VITE_WEATHER_LAT=${{ vars.VITE_WEATHER_LAT }}
+            VITE_WEATHER_LON=${{ vars.VITE_WEATHER_LON }}
+            VITE_HOME_PLACE=${{ vars.VITE_HOME_PLACE }}
+            VITE_LEARNWEB_ENABLED=${{ vars.VITE_LEARNWEB_ENABLED }}
+            VITE_MENSA_CANTEENS=${{ vars.VITE_MENSA_CANTEENS }}
+            VITE_BUS_STOP_ID=${{ vars.VITE_BUS_STOP_ID }}
+            VITE_BUS_STOP_NAME=${{ vars.VITE_BUS_STOP_NAME }}
+            VITE_BUS_HBF_MINUTES=${{ vars.VITE_BUS_HBF_MINUTES }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Auf den Server ausrollen
+    needs: image
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-larvis
+      cancel-in-progress: false
+
+    steps:
+      - name: Zugang prüfen
+        id: zugang
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          # Fehlt der Schlüssel, bricht der Job ab. Ein übersprungener Deploy mit grünem Haken
+          # fiele erst auf, wenn wochenlang nichts ausgerollt wurde.
+          if [ -z "$KEY" ]; then
+            echo "::error::DEPLOY_SSH_KEY fehlt. Ohne Zugang wird nicht ausgerollt, der Lauf ist rot."
+            exit 1
+          fi
+          echo "vorhanden=ja" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v4
+        if: steps.zugang.outputs.vorhanden == 'ja'
+
+      - name: SSH einrichten
+        if: steps.zugang.outputs.vorhanden == 'ja'
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$HOSTS" > ~/.ssh/known_hosts
+
+      # Die Compose-Datei kommt aus demselben Commit wie das Image, damit ein geänderter Dienst
+      # nicht mit einem alten Image zusammentrifft. Nur diese eine Datei: auf der Box liegt kein
+      # Quellcode.
+      - name: Compose-Datei auf die Box bringen
+        if: steps.zugang.outputs.vorhanden == 'ja'
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER_NAME: ${{ secrets.DEPLOY_USER }}
+        run: |
+          scp -o BatchMode=yes deploy/docker-compose.prod.yml "$USER_NAME@$HOST:/opt/larvis/docker-compose.yml"
+
+      # Die Box meldet sich mit dem Token dieses Laufs an der Registry an. Das Token gilt nur für
+      # die Dauer des Laufs, deshalb liegt auf der Box kein dauerhafter Registry-Zugang. Es geht
+      # über den Standardeingang an die entfernte bash, nicht als Variablenzuweisung vor dem
+      # Befehl: die stünde für die Dauer des Deploys in "ps" für jeden Benutzer lesbar.
+      #
+      # APP_TAG wird hier nicht in die .env geschrieben. Compose nimmt den Wert aus der Umgebung
+      # dieser Sitzung; in der Datei bleibt der bisherige Stand stehen, bis der Health-Check grün
+      # ist. Scheitert der Deploy, bringt ein "docker compose up -d" von Hand den alten Stand
+      # zurück, statt den gescheiterten stillschweigend auszurollen.
+      - name: Ausrollen
+        if: steps.zugang.outputs.vorhanden == 'ja'
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER_NAME: ${{ secrets.DEPLOY_USER }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+          TAG: sha-${{ github.sha }}
+          IMAGE_LABEL: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+        run: |
+          cat > "$RUNNER_TEMP/deploy.sh" <<'ENDE'
+          set -euo pipefail
+          cd /opt/larvis
+          echo "Bisher ausgerollt: $(sed -n 's/^APP_TAG=//p' .env | tail -n 1)"
+          echo "Jetzt:             $APP_TAG"
+          echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin
+          docker compose pull larvis
+          docker compose up -d
+          docker logout ghcr.io
+          # Nur die eigenen Bilder. Auf der Box können andere Stacks liegen, und ein "prune" ohne
+          # Filter nimmt deren unbenutzte Bilder mit.
+          docker image prune -f --filter "label=$IMAGE_LABEL"
+          docker compose ps
+          ENDE
+          { printf 'REGISTRY_TOKEN=%q\n' "$REGISTRY_TOKEN"; cat "$RUNNER_TEMP/deploy.sh"; } \
+            | ssh -o BatchMode=yes "$USER_NAME@$HOST" \
+                "REGISTRY_USER='$REGISTRY_USER' APP_TAG='$TAG' LARVIS_IMAGE='$APP_IMAGE' IMAGE_LABEL='$IMAGE_LABEL' bash -s"
+
+      - name: Erreichbarkeit prüfen
+        if: steps.zugang.outputs.vorhanden == 'ja'
+        run: |
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$APP_URL/healthz" || true)
+            if [ "$code" = "200" ]; then echo "Die App antwortet."; exit 0; fi
+            sleep 5
+          done
+          echo "::error::Die App antwortet nach dem Ausrollen nicht mit 200."
+          echo "::error::Rollback: in /opt/larvis/.env steht noch der vorherige APP_TAG; auf der Box genügt  cd /opt/larvis && docker compose up -d"
+          exit 1
+
+      # Erst nach dem grünen Health-Check kommt der ausgerollte Stand in die .env. APP_TAG_VORHER
+      # bleibt daneben stehen, damit ein Rollback nach einem gelungenen Deploy keine Suche im
+      # Verlauf der Actions braucht.
+      - name: Ausgerollten Stand in die .env schreiben
+        if: steps.zugang.outputs.vorhanden == 'ja'
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER_NAME: ${{ secrets.DEPLOY_USER }}
+          TAG: sha-${{ github.sha }}
+        run: |
+          ssh -o BatchMode=yes "$USER_NAME@$HOST" "APP_TAG='$TAG' bash -s" <<'ENDE'
+          set -euo pipefail
+          cd /opt/larvis
+          VORHER="$(sed -n 's/^APP_TAG=//p' .env | tail -n 1)"
+          VORHER="${VORHER:-latest}"
+          if grep -q "^APP_TAG_VORHER=" .env; then
+            sed -i "s|^APP_TAG_VORHER=.*|APP_TAG_VORHER=$VORHER|" .env
+          else
+            printf "APP_TAG_VORHER=%s\n" "$VORHER" >> .env
+          fi
+          if grep -q "^APP_TAG=" .env; then
+            sed -i "s|^APP_TAG=.*|APP_TAG=$APP_TAG|" .env
+          else
+            printf "APP_TAG=%s\n" "$APP_TAG" >> .env
+          fi
+          echo "APP_TAG: ${VORHER} -> ${APP_TAG}"
+          echo "Rollback: APP_TAG=${VORHER} eintragen, dann docker compose up -d"
+          ENDE

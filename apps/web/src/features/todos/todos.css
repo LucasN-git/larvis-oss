@@ -1,0 +1,46 @@
+/* ToDo list as a group (see features.css .group).
+   The hairline between rows starts flush with the title: row padding + check
+   column + row gap. The check is 26 px on desktop and 28 px on touch. */
+.todo-group { --todo-check: 26px; --row-inset: calc(var(--row-pad-x) + var(--todo-check) + 12px); }
+@media (hover: none), (max-width: 639px) {
+  .todo-group { --todo-check: 28px; }
+}
+
+/* Plus sits in the check column of the "Neues ToDo" row. */
+.todo-add__icon {
+  width: var(--todo-check, 26px);
+  height: var(--todo-check, 26px);
+  flex: none;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+}
+
+/* Swipe hint behind a row. Right = done, left = backlog, far left = delete.
+   The hint sits on the side the row uncovers. */
+.swipe-bg.todo-swipe--end { justify-content: flex-end; }
+.swipe-bg.todo-swipe--done { color: var(--accent-contrast); background: var(--accent); }
+.swipe-bg.todo-swipe--backlog { color: var(--text-muted); background: var(--well); }
+.swipe-bg.todo-swipe--delete { color: #fff; background: var(--danger); }
+.swipe-bg.todo-swipe--delete svg { animation: todo-swipe-pop 160ms ease; }
+@keyframes todo-swipe-pop { 0% { transform: scale(0.7); } 60% { transform: scale(1.15); } 100% { transform: scale(1); } }
+
+/* Touch: sun and trash give way to the swipe gestures; mouse keeps them. */
+@media (hover: none) {
+  .icon-btn.todo-row__sun,
+  .icon-btn.todo-row__delete { display: none; }
+}
+
+/* Liste mit begrenzter Höhe (Heute): scrollt innen, der Seiten-Scroll bleibt stehen. */
+.group.list--scroll {
+  max-height: min(560px, 62vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* Die Gruppe ist eine Flex-Spalte: Zeilen behalten ihre Höhe, statt zu stauchen. */
+.group.list--scroll > * { flex-shrink: 0; }
+
+/* Project colour: the open check ring takes the effective project colour
+   (sub-projects inherit). Done rows keep the solid ink of .check. */
+.check.check--proj:not([data-done='true']) { box-shadow: inset 0 0 0 2px var(--proj); }
+.check.check--proj:not([data-done='true']):hover { color: var(--proj); }

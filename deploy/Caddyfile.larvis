@@ -1,0 +1,97 @@
+# Site-Block für Larvis. Gehört in /opt/proxy/Caddyfile, LARVIS_DOMAIN in
+# /opt/proxy/.env, danach `docker compose -f /opt/proxy/docker-compose.yml up -d`.
+#
+# Der Block muss in die environment-Liste des Caddy-Service aufgenommen werden
+# (LARVIS_DOMAIN: ${LARVIS_DOMAIN}), sonst bleibt die Variable leer.
+#
+# Supabase liegt unter derselben Domain wie die App, als Pfad-Präfixe. Das ist
+# Absicht: gleicher Origin heißt kein CORS, keine Preflights, keine Sonderregeln
+# für den apikey-Header — genau die Arbeit, die im offiziellen Stack das
+# API-Gateway macht, das hier entfällt.
+
+# --- Larvis ------------------------------------------------------
+# www zeigt auf dieselbe Anwendung; kanonisch ist die Domain ohne Präfix, damit
+# Sessions, Service Worker und die OAuth-Metadaten nur einen Origin kennen.
+www.{$LARVIS_DOMAIN} {
+    redir https://{$LARVIS_DOMAIN}{uri} permanent
+}
+
+{$LARVIS_DOMAIN} {
+    # Keine CSP: Larvis spricht mit Supabase auf
+    # derselben Domain und mit dem Web-Push-Dienst des Browsers.
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(self), geolocation=(), interest-cohort=()"
+        -Server
+    }
+    encode zstd gzip
+
+    log {
+        output file /data/logs/larvis-access.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+    # Der iOS-Shortcut trägt sein Token im Header, /auth/v1/token das Passwort
+    # im Body und /auth/v1/admin/* den Service-Key — nichts davon ins Log.
+    log_skip /api/shortcuts/*
+    log_skip /auth/v1/token*
+    log_skip /auth/v1/admin/*
+
+    # --- Supabase ---------------------------------------------------------
+    # Reihenfolge zählt: Caddy prüft handle-Blöcke von oben nach unten, der
+    # App-Block unten fängt sonst alles ab.
+
+    # RFC 8414: Der Issuer ist https://<domain>/auth/v1, das Metadaten-Dokument
+    # gehört deshalb an die Wurzel mit angehängtem Issuer-Pfad. Ohne diesen
+    # Block liefert der SPA-Fallback dort index.html aus, und der claude.ai-
+    # Connector meldet nur "could not connect".
+    handle /.well-known/oauth-authorization-server* {
+        rewrite * /.well-known/oauth-authorization-server
+        reverse_proxy larvis-auth:9999
+    }
+    handle /.well-known/openid-configuration {
+        reverse_proxy larvis-auth:9999
+    }
+
+    handle_path /auth/v1/* {
+        reverse_proxy larvis-auth:9999
+    }
+
+    handle_path /rest/v1/* {
+        reverse_proxy larvis-rest:3000
+    }
+
+    handle_path /storage/v1/* {
+        # Etwas über dem größten Bucket-Limit (uploads, 50 MB).
+        request_body {
+            max_size 60MB
+        }
+        reverse_proxy larvis-storage:5000
+    }
+
+    handle_path /realtime/v1/* {
+        # Realtime liest den Tenant aus dem ersten Label des Host-Headers.
+        # Ohne diesen Host antwortet der Dienst mit 404, ohne verwertbares Log,
+        # und die App wirkt bloß träge statt kaputt. Der Rest des Namens ist egal.
+        rewrite * /socket{uri}
+        reverse_proxy larvis-realtime:4000 {
+            header_up Host realtime-dev.larvis
+        }
+    }
+
+    # --- App --------------------------------------------------------------
+    handle {
+        reverse_proxy larvis:3000 {
+            # Der Learnweb-Sync läuft minutenlang; die Standardgrenze von Caddy
+            # würde ihn kappen.
+            transport http {
+                read_timeout 600s
+                write_timeout 600s
+            }
+        }
+    }
+}

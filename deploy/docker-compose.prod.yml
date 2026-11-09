@@ -1,0 +1,38 @@
+# Gehört auf dem Server nach /opt/larvis/docker-compose.yml. LARVIS_IMAGE in .env nennt
+# das eigene Image (z. B. ghcr.io/<github-user>/larvis).
+#
+# Larvis hält keinen eigenen Zustand: Daten, Auth, Storage und Cron liegen in der
+# eigenen Supabase (/opt/supabase). Der Container ist reine Auslieferung, ein
+# Neustart kostet nichts.
+#
+# Das Image baut der Workflow .github/workflows/release.yml (von Hand gestartet)
+# und rollt es hier aus; auf dem Server liegt kein Quellbaum. APP_TAG in .env ist der
+# ausgerollte Stand (sha-<commit>), APP_TAG_VORHER der davor: Rollback heißt, den alten
+# Wert eintragen und `docker compose up -d`. Die öffentliche Client-Konfiguration
+# (Backend-URL, anon-Key, VAPID-Public) steckt fest im Image; sie kommt aus den
+# Repository-Variablen, nicht aus dieser .env.
+
+services:
+  larvis:
+    image: ${LARVIS_IMAGE:-ghcr.io/OWNER/larvis}:${APP_TAG:-latest}
+    container_name: larvis
+    restart: unless-stopped
+    env_file: .env
+    # Nur auf dem Loopback, damit vor der Domain über einen SSH-Tunnel getestet
+    # werden kann. Von außen erreichbar ist die App ausschließlich über Caddy.
+    ports:
+      - "127.0.0.1:3001:3000"
+    networks:
+      - web
+    # Laufend braucht der Container rund 50 MB. Die Grenze ist da, damit ein Leck
+    # hier nicht andere Anwendungen auf dem Server aus dem Speicher drängt.
+    mem_limit: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  web:
+    external: true

@@ -1,0 +1,836 @@
+/* Component styles. Reads only theme CSS variables.
+   Surfaces: card + hairline ring, grey wells for inputs and tracks, ink for
+   primary actions, liquid glass for floating layers. */
+
+/* ---- Buttons ---- */
+/* Default = secondary (card + strong ring). Primary = ink (black in light,
+   white in dark). Orange is not a button color. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  font-weight: 550;
+  font-size: 14px;
+  line-height: 1.2;
+  color: var(--text);
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--border-strong);
+  transition: background 140ms ease, color 140ms ease, transform 120ms ease, opacity 140ms ease;
+  white-space: nowrap;
+}
+.btn:hover { background: var(--surface); }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn--primary { background: var(--ink); color: var(--ink-contrast); box-shadow: none; }
+.btn--primary:hover { background: var(--ink); opacity: 0.88; }
+.btn--primary:disabled { opacity: 0.4; }
+.btn--ghost { background: transparent; box-shadow: none; }
+.btn--ghost:hover { background: var(--surface); box-shadow: none; }
+.btn--sm { min-height: 32px; padding: 6px 12px; font-size: 13px; border-radius: var(--radius-sm); }
+.btn--block { width: 100%; }
+
+/* ---- Icon button (round — one of the few allowed pills) ---- */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+  background: var(--card);
+  box-shadow: var(--shadow-ring);
+  transition: background 140ms ease, color 140ms ease, transform 120ms ease;
+  flex: none;
+}
+.icon-btn:hover { background: var(--surface); color: var(--text); }
+.icon-btn[aria-pressed='true'] { background: var(--well); color: var(--text); }
+.icon-btn:active { transform: scale(0.94); }
+.icon-btn--sm { width: 32px; height: 32px; }
+
+/* Bare icon button: no ring, no fill — for actions inside a row or group, where
+   the group already is the one frame. Hover is a neutral tint that reads on
+   card and on a hovered row (--surface) alike. 32 px with a mouse, the full
+   tap target (--tap) on touch and on the phone. */
+.icon-btn--bare {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  box-shadow: none;
+}
+.icon-btn--bare:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
+.icon-btn--bare[aria-pressed='true'] { background: var(--well); }
+@media (hover: none), (max-width: 639px) {
+  .icon-btn--bare { width: var(--tap); height: var(--tap); }
+}
+
+/* ---- Inputs ---- */
+/* Grey well at rest; on focus the field lifts to card with a strong ring and
+   the soft accent focus halo. */
+.input,
+.textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  background: var(--well);
+  box-shadow: none;
+  color: var(--text);
+  border: none;
+  outline: none;
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+.input::placeholder,
+.textarea::placeholder { color: var(--text-faint); }
+.input:focus,
+.textarea:focus {
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--border-strong), var(--shadow-focus);
+}
+.textarea { resize: vertical; min-height: 96px; line-height: 1.55; }
+/* GrowingInput: die Höhe setzt das Skript, daher kein Ziehgriff und kein Scrollbalken. */
+.input--grow { resize: none; overflow: hidden; }
+
+/* Native date/time inputs keep their own -webkit-appearance on iOS Safari: the
+   widget carries an intrinsic height and content width that ignore our padding
+   and width, so the field renders taller and wider than the control next to it
+   and overflows its flex cell. Reset the native appearance and neutralise the
+   inner value/edit boxes so these match a plain text input. */
+.input[type='date'],
+.input[type='datetime-local'],
+.input[type='time'],
+.input[type='month'] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 0;
+  font-size: 16px; /* also stops iOS from zooming the page on focus */
+  line-height: 1.4;
+}
+.input::-webkit-date-and-time-value {
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  min-height: 1.4em;
+}
+.input::-webkit-datetime-edit {
+  padding: 0;
+  line-height: 1.4;
+}
+.input::-webkit-calendar-picker-indicator { margin: 0 0 0 auto; }
+
+/* ---- Custom date/time picker (desktop) ----
+   Native date/time widgets render badly on desktop Linux, so on wide screens we
+   swap them for a trigger button + popover. The trigger mirrors .input so it
+   sits flush next to real inputs; the popover is portaled to <body>. */
+.dtp-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  background: var(--well);
+  box-shadow: none;
+  color: var(--text);
+  font-size: 14.5px;
+  text-align: left;
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+.dtp-trigger:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--border-strong); }
+.dtp-trigger:focus-visible {
+  outline: none;
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--border-strong), var(--shadow-focus);
+}
+.dtp-trigger:disabled { opacity: 0.5; cursor: not-allowed; }
+.dtp-trigger__icon { color: var(--text-muted); flex: none; }
+.dtp-trigger__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dtp-trigger--empty .dtp-trigger__label { color: var(--text-faint); }
+
+.dtp-pop {
+  position: fixed;
+  z-index: 70; /* above drawer/modal (50) */
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-out-lg);
+  padding: 12px;
+  animation: dtp-in 130ms ease;
+}
+@keyframes dtp-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* Calendar inside the popover */
+.dtp-cal { width: 264px; }
+.dtp-cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.dtp-cal__month {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: capitalize;
+  font-variant-numeric: tabular-nums;
+}
+.dtp-nav {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  transition: background 120ms ease, color 120ms ease;
+}
+.dtp-nav:hover { background: var(--well); color: var(--text); }
+.dtp-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.dtp-cal__wd {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  text-align: center;
+  padding-bottom: 4px;
+}
+.dtp-day {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  transition: background 120ms ease, box-shadow 120ms ease, color 120ms ease;
+}
+.dtp-day:hover { background: var(--well); }
+.dtp-day--out { color: var(--text-faint); }
+.dtp-day--today { font-weight: 600; color: var(--accent); }
+.dtp-day--sel,
+.dtp-day--sel:hover {
+  background: var(--ink);
+  color: var(--ink-contrast);
+  font-weight: 600;
+}
+
+/* Titel als Zoom-Button (Tage → Monate → Jahre) */
+.dtp-cal__month--btn {
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.dtp-cal__month--btn:hover { background: var(--well); }
+
+/* Grobe Auswahlgitter (Monate/Jahre) */
+.dtp-cal__coarse {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.dtp-cell {
+  padding: 11px 0;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  transition: background 120ms ease, color 120ms ease;
+}
+.dtp-cell:hover { background: var(--well); }
+.dtp-cell--sel,
+.dtp-cell--sel:hover {
+  background: var(--ink);
+  color: var(--ink-contrast);
+  font-weight: 600;
+}
+
+/* Time popover: typed field + scrollable 15-min slots */
+.dtp-time { width: 148px; }
+.dtp-time__field {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  padding: 9px 12px;
+  margin-bottom: 8px;
+}
+.dtp-time__list {
+  max-height: 216px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dtp-slot {
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  text-align: center;
+  transition: background 100ms ease, color 100ms ease;
+}
+.dtp-slot:hover { background: var(--well); color: var(--text); }
+.dtp-slot--sel {
+  background: var(--ink);
+  color: var(--ink-contrast);
+  font-weight: 600;
+}
+
+/* ---- Badges & chips ---- */
+/* Small tags (radius-tag) instead of pills. Tones use the *-soft fills. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-tag);
+  font-size: 11.5px;
+  font-weight: 550;
+  line-height: 1.5;
+  background: var(--well);
+  color: var(--text-muted);
+}
+.badge--accent { background: var(--accent-soft); color: var(--accent); }
+.badge--success { background: var(--success-soft); color: var(--success); }
+.badge--warning { background: var(--warning-soft); color: var(--warning); }
+.badge--danger { background: var(--danger-soft); color: var(--danger); }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-tag);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  background: var(--well);
+  color: var(--text-muted);
+}
+/* Filter chips are buttons in chip form; the active one is ink. */
+.chip--active { background: var(--ink); color: var(--ink-contrast); box-shadow: none; }
+
+/* Tag input (chips + suggestions) */
+.tag-input {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--well);
+  box-shadow: none;
+  transition: background 140ms ease, box-shadow 140ms ease;
+}
+.tag-input:focus-within {
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--border-strong), var(--shadow-focus);
+}
+.tag-input .chip { background: var(--card); box-shadow: var(--shadow-ring); }
+.tag-input__field {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  padding: 4px;
+  font-size: 14px;
+}
+.chip--removable { cursor: pointer; }
+.chip--removable:hover { color: var(--danger); }
+.tag-suggest { cursor: pointer; background: var(--well); box-shadow: none; }
+.tag-suggest:hover { color: var(--accent); }
+
+/* ---- Segmented control ---- */
+.segmented {
+  --seg-pad-x: 16px; /* seitlicher Innenabstand einer Option; `Segmented` rechnet damit */
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  border-radius: var(--radius-md);
+  background: var(--well);
+  max-width: 100%;
+}
+/* Passt die Reihe nicht in die Breite, bricht sie in gleich breite Spalten um —
+   seitlich gescrollt wird nie. Die Spaltenzahl rechnet `Segmented` aus. */
+.segmented--wrapped {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  border-radius: var(--radius-md);
+}
+.segmented--wrapped .segmented__option {
+  flex: 1 1 calc((100% - (var(--seg-cols) - 1) * 4px) / var(--seg-cols) - 0.5px);
+  min-width: 0;
+  padding-left: 6px;
+  padding-right: 6px;
+  text-align: center;
+}
+.segmented__label { display: inline-block; }
+.segmented__option {
+  padding: 6px var(--seg-pad-x);
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all 140ms ease;
+  white-space: nowrap;
+  flex: none;
+}
+@media (max-width: 639px) {
+  .segmented { --seg-pad-x: 11px; }
+}
+.segmented__option:hover { color: var(--text); }
+.segmented__option[aria-pressed='true'] {
+  color: var(--text);
+  background: var(--card);
+  box-shadow: var(--shadow-out-sm);
+}
+
+/* ---- Theme switch (light/dark toggle) ---- */
+.theme-switch {
+  --sw-w: 66px;
+  --sw-h: 32px;
+  --sw-pad: 4px;
+  position: relative;
+  width: var(--sw-w);
+  height: var(--sw-h);
+  flex: none;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  background: var(--well);
+  box-shadow: inset 0 0 0 1px var(--border);
+  cursor: pointer;
+}
+.theme-switch__track {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  color: var(--text-faint);
+}
+.theme-switch__knob {
+  position: absolute;
+  top: var(--sw-pad);
+  left: var(--sw-pad);
+  width: calc(var(--sw-h) - 2 * var(--sw-pad));
+  height: calc(var(--sw-h) - 2 * var(--sw-pad));
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: var(--shadow-out-sm);
+  transition: transform 180ms ease;
+}
+.theme-switch--on .theme-switch__knob {
+  transform: translateX(calc(var(--sw-w) - var(--sw-h)));
+}
+
+/* ---- Card padding helpers ----
+   Insets follow the viewport (tokens in global.css). pad-none is for a card
+   whose content runs edge to edge (rows, media); it clips to the radius. */
+.card-pad { padding: var(--inset-card); }
+.card-pad-sm { padding: var(--inset-card-sm); }
+.card-pad-none { padding: 0; overflow: clip; }
+
+/* ---- Markdown rendering ---- */
+.markdown { line-height: 1.6; color: var(--text); }
+.markdown > *:first-child { margin-top: 0; }
+.markdown > *:last-child { margin-bottom: 0; }
+.markdown h1, .markdown h2, .markdown h3 { line-height: 1.25; margin: 1.1em 0 0.5em; letter-spacing: -0.01em; }
+.markdown h1 { font-size: 1.5em; }
+.markdown h2 { font-size: 1.25em; }
+.markdown h3 { font-size: 1.08em; }
+.markdown p { margin: 0.6em 0; }
+.markdown ul, .markdown ol { margin: 0.6em 0; padding-left: 1.4em; }
+.markdown li { margin: 0.2em 0; }
+.markdown a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.markdown code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--well);
+  padding: 0.12em 0.4em;
+  border-radius: 6px;
+}
+.markdown pre {
+  background: var(--well);
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: 0.8em 0;
+}
+.markdown pre code { background: none; padding: 0; }
+.markdown blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 14px;
+  color: var(--text-muted);
+  margin: 0.8em 0;
+}
+.markdown table { border-collapse: collapse; width: 100%; margin: 0.8em 0; }
+.markdown th, .markdown td { border: 1px solid var(--border); padding: 7px 11px; text-align: left; }
+.markdown input[type='checkbox'] { margin-right: 8px; accent-color: var(--accent); }
+.markdown hr { border: none; border-top: 1px solid var(--border); margin: 1.2em 0; }
+
+/* ---- Modal ---- */
+/* The backdrop is only a flat scrim: no backdrop-filter and no opacity
+   animation on it — an ancestor with opacity < 1 or a filter would stop the
+   glass modal inside from blurring anything. The fade runs on .modal itself. */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: var(--scrim);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.modal {
+  width: 100%;
+  max-width: 640px;
+  max-height: calc(var(--app-h) * 0.88);
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-xl);
+  padding: var(--inset-card);
+  animation: modal-fade 160ms ease;
+}
+/* Title row and action row of a modal or drawer; the body scrolls between them. */
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  flex: none;
+}
+.modal__title { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+.modal__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--inset-card);
+  flex: none;
+}
+.modal__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+@keyframes modal-fade { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: none; } }
+
+/* Mobil wird das Modal zum Bottom-Sheet (nach unten ziehen schließt). */
+@media (max-width: 639px) {
+  .modal-backdrop--sheet {
+    place-items: end stretch;
+    padding: 0;
+  }
+  .modal--sheet {
+    max-width: none;
+    max-height: calc(var(--app-h) * 0.92);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: calc(var(--inset-card) + env(safe-area-inset-bottom));
+    animation: sheet-in 260ms cubic-bezier(0.32, 0.72, 0.24, 1);
+  }
+}
+
+/* Grab-Handle oben auf jedem Bottom-Sheet. */
+.sheet-grab {
+  flex: none;
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--text-faint);
+  opacity: 0.55;
+  margin: -6px auto 12px;
+}
+@keyframes sheet-in {
+  from { transform: translateY(65%); }
+  to { transform: none; }
+}
+
+/* ---- Drawer (right side panel) — the standard edit surface ---- */
+/* Desktop: transparent backdrop, the rest of the app stays clear. The drawer
+   itself is strong glass with a hairline on its left edge. */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: transparent;
+  display: flex;
+  justify-content: flex-end;
+}
+.drawer {
+  position: relative;
+  width: min(480px, 100vw);
+  height: var(--app-h);
+  overflow: hidden;
+  padding: var(--inset-card);
+  display: flex;
+  flex-direction: column;
+  animation: drawer-in 200ms ease;
+}
+.drawer.glass {
+  box-shadow: inset 1px 0 0 var(--border-strong), 0 12px 40px rgb(0 0 0 / 0.12);
+}
+@keyframes drawer-in { from { transform: translateX(24px); opacity: 0.4; } to { transform: none; opacity: 1; } }
+
+/* Mobil: Drawer wird zum Bottom-Sheet (nach unten ziehen schließt). */
+@media (max-width: 639px) {
+  .drawer-backdrop {
+    align-items: flex-end;
+    background: var(--scrim);
+  }
+  .drawer.drawer--sheet {
+    width: 100%;
+    height: auto;
+    max-height: calc(var(--app-h) * 0.92);
+    min-height: min(45dvh, calc(var(--app-h) * 0.92));
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding-bottom: calc(var(--inset-card) + env(safe-area-inset-bottom));
+    animation: sheet-in 260ms cubic-bezier(0.32, 0.72, 0.24, 1);
+  }
+  .drawer.drawer--sheet.glass {
+    box-shadow: inset 0 0 0 1px var(--glass-border), 0 -8px 32px rgb(0 0 0 / 0.12);
+  }
+}
+/* Touch: Modal- und Drawer-Ebene decken nur den sichtbaren Bereich über der
+   Tastatur ab (siehe --app-h in global.css), Sheets sitzen so direkt darauf. */
+@media (pointer: coarse) {
+  .modal-backdrop,
+  .drawer-backdrop {
+    top: var(--vv-top, 0px);
+    bottom: auto;
+    height: var(--app-h);
+  }
+}
+
+/* Drag the left edge to resize the drawer width. */
+.drawer__resize {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: ew-resize;
+  touch-action: none;
+  z-index: 2;
+}
+.drawer__resize::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: transparent;
+  transition: background 140ms ease;
+}
+.drawer__resize:hover::before { background: var(--accent); }
+.drawer__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.drawer__footer {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: var(--inset-card);
+  padding-top: var(--inset-card-sm);
+  border-top: 1px solid var(--separator);
+}
+
+/* ---- Autosave: inline status + top-right toast ---- */
+.save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-right: 4px;
+  transition: color 140ms ease;
+}
+.save-status--saved { color: var(--success); }
+.save-status--error { color: var(--danger); }
+
+.toast-stack {
+  position: fixed;
+  top: calc(16px + env(safe-area-inset-top, 0px));
+  right: calc(16px + env(safe-area-inset-right, 0px));
+  z-index: 60; /* above modal/drawer (50) */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text);
+  border-radius: var(--radius-md);
+  animation: toast-in 180ms ease;
+}
+.toast--saved { color: var(--success); }
+.toast--error { color: var(--danger); }
+/* Toast with a button (undo after delete): clickable, button at the end. */
+.toast--action { pointer-events: auto; padding-right: 6px; }
+.toast__text { min-width: 0; }
+.toast__action {
+  flex: none;
+  margin-left: 6px;
+  padding: 6px 10px;
+  min-height: 32px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--accent);
+}
+.toast__action:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
+/* Phone: the stack sits above the bottom tab bar, in thumb reach (undo). */
+@media (max-width: 639px) {
+  .toast-stack {
+    top: auto;
+    left: 16px;
+    right: 16px;
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px) + var(--kb, 0px));
+    align-items: center;
+  }
+  .toast__action { min-height: var(--tap); }
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- Markdown editor ---- */
+.md-editor { display: flex; flex-direction: column; gap: 12px; }
+.md-editor__area {
+  min-height: 220px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+/* Rotierendes Icon (z. B. Learnweb-Sync-Button während des Syncs). */
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Learnweb-Videoplayer ---- */
+.video-player {
+  position: relative;
+  background: #000;
+  border-radius: var(--radius-md);
+}
+.video-player__video {
+  display: block;
+  width: 100%;
+  max-height: 65vh;
+  border-radius: var(--radius-md);
+  background: #000;
+}
+/* Echtes Fullscreen (Android/Desktop): Video füllt den Screen, Ecken weg. */
+.video-player:fullscreen {
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+}
+.video-player:fullscreen .video-player__video {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border-radius: 0;
+}
+/* Frame umschließt Video + Exit-Button dauerhaft (kein DOM-Umhängen beim
+   Umschalten, das würde die Wiedergabe abbrechen). Normal unsichtbar. */
+.video-player__frame { display: contents; }
+
+/* iOS-Fallback ohne Orientation-Lock: Pseudo-Fullscreen. Der Frame wird zum
+   Querformat-"Bildschirm" (Breite = Viewporthöhe), mittig um 90° gedreht —
+   Video, Controls und Exit-Button drehen mit und sitzen im Querformat richtig. */
+.video-player--flipped {
+  position: fixed;
+  inset: 0;
+  z-index: 55; /* über Modal-Inhalt (Backdrop 50), unter Toasts (60) */
+  border-radius: 0;
+  background: #000;
+}
+.video-player--flipped .video-player__frame {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100dvh;
+  height: 100dvw;
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.video-player--flipped .video-player__video {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border-radius: 0;
+  object-fit: contain;
+}
+.video-player__exit {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+}
+/* Steuerzeile: Tempo-Control schrumpft und scrollt intern, Icons bleiben rechts. */
+.video-player__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.video-player__rates {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* Handy: ein Button zeigt das aktuelle Tempo, Tippen schaltet weiter. */
+.video-player__rate-cycle {
+  margin-right: auto;
+  min-width: 64px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Video-Seite (mobil): Zurück-Button + Titel über dem Player. */
+.video-page__header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+.video-page__title {
+  font-size: 16.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+  padding-top: 6px; /* optisch auf den 34px-IconButton zentriert */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

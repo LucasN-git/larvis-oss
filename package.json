@@ -1,0 +1,26 @@
+{
+  "name": "larvis",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Larvis — persönliches Life-OS (Projekte, ToDos, Notizen, Wiki, Kalender), vollständig über Claude via MCP bedienbar.",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @larvis/web",
+    "build": "npm run build -w @larvis/shared && npm run build -w @larvis/web",
+    "build:web": "npm run build -w @larvis/web",
+    "build:mcp": "npm run build -w @larvis/shared && npm run build -w @larvis/mcp-server",
+    "mcp": "npm run start -w @larvis/mcp-server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "memory:sync": "node scripts/memory/sync-claude-md.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

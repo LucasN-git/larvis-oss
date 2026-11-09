@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Generiertes MCP-Bundle für den API-Handler (gebaut von apps/web/scripts/build-mcp-bundle.mjs)
+apps/web/api/_lib/mcp-bundle.js
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+*.swp
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Claude-Code-Settings sind maschinenlokal
+.claude/settings.local.json
+
+# Python-Bytecode (scripts/learnweb/*.py)
+__pycache__/
+*.pyc
+
+# Learnweb: HTML-Test-Fixtures (enthalten Namen/Kursinhalte) und generiertes MCP-Bundle
+packages/shared/test/fixtures/
+apps/web/api/_lib/learnweb-bundle.js
+# Kalender-Abo-Bundle (read-only ICS), ebenfalls von build-mcp-bundle.mjs erzeugt
+apps/web/api/_lib/ics-bundle.js
+# lokal heruntergeladene Vorlesungs-Medien
+.cache/larvis/
+
+# Lokales Arbeitsmaterial (etwa Kontakt-Exporte für scripts/contacts/ mit
+# personenbezogenen Daten Dritter) — bleibt lokal, gehört nie ins Repo.
+/material/
+
+# Build-Artefakt des Eigenbetriebs (esbuild-Bundles der api/-Endpoints)
+dist-api/

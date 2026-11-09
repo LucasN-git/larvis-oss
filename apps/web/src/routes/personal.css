@@ -1,0 +1,25 @@
+/* Persönlich, Einstellungen, Memories, Archiv: Gruppen-Feinheiten, die nur
+   diese Seiten brauchen. Die Gruppe selbst (.group, Hairlines, Zeilen) kommt
+   aus features/features.css.
+
+   --row-inset legt die Hairline bündig zum Titel: Zeilen-Innenabstand plus
+   führendes Symbol plus Lücke der .item-row (12 px). */
+.group--glyph { --row-inset: calc(var(--row-pad-x) + 22px + 12px); } /* .row-glyph */
+@media (max-width: 639px) {
+  .group--glyph .item-row--wrap .item-row__actions { padding-left: calc(22px + 12px); }
+}
+
+/* Führendes Symbol einer Zeile ohne eigene Kachel (Emoji, Lucide-Icon). */
+.row-glyph {
+  display: inline-flex;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  color: var(--accent);
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Zeile, die als Link irgendwohin führt: Text in Textfarbe, Pfeil/Chevron blass. */
+a.link-row { color: inherit; text-decoration: none; }
+.link-row__trail { flex: none; color: var(--text-faint); }

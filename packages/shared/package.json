@@ -1,0 +1,36 @@
+{
+  "name": "@larvis/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./learnweb": {
+      "types": "./dist/learnweb/index.d.ts",
+      "import": "./dist/learnweb/index.js"
+    },
+    "./ics": {
+      "types": "./dist/ics/index.d.ts",
+      "import": "./dist/ics/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "ical.js": "2.2.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

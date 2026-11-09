@@ -1,0 +1,272 @@
+# Supabase im Eigenbetrieb — gehört auf dem Server nach /opt/supabase/docker-compose.yml.
+#
+# Das ist der offizielle Stack auf das reduziert, was Larvis wirklich benutzt:
+# Postgres, Auth, PostgREST, Realtime, Storage. Weggelassen sind Studio,
+# postgres-meta, das API-Gateway (Envoy/Kong), imgproxy, Edge Runtime, Logflare,
+# Vector und der Pooler. Das Routing macht ein Caddy, der auf dem Server
+# 80/443 hält; die Bildtransformation nutzt die App nicht, sie holt nur
+# signierte URLs.
+#
+# Die Datenbank hängt bewusst NICHT am Netz "web": nur die vier Dienste davor
+# dürfen sie erreichen, kein anderer Container auf dem Server.
+
+name: larvis-supabase
+
+services:
+  db:
+    container_name: larvis-db
+    image: supabase/postgres:17.6.1.136
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      POSTGRES_USER: supabase_admin
+      PGPORT: 5432
+      POSTGRES_PORT: 5432
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: postgres
+      POSTGRES_DB: postgres
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXP: ${JWT_EXPIRY}
+    volumes:
+      # Init-Skripte aus dem offiziellen Stack. logs.sql, pooler.sql und
+      # _supabase.sql fehlen bewusst: sie gehören zu Logflare und Supavisor.
+      - ./init/realtime.sql:/docker-entrypoint-initdb.d/migrations/99-realtime.sql:Z
+      - ./init/webhooks.sql:/docker-entrypoint-initdb.d/init-scripts/98-webhooks.sql:Z
+      - ./init/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:Z
+      - ./init/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:Z
+      # Bind-Mount statt Named Volume: sichtbar im Dateisystem und schwerer
+      # versehentlich mit "docker compose down -v" zu löschen.
+      - ./data:/var/lib/postgresql/data:Z
+      - db-config:/etc/postgresql-custom
+    ports:
+      # Nur Loopback, für psql und pg_restore über einen SSH-Tunnel.
+      - "127.0.0.1:5433:5432"
+    command:
+      [
+        "postgres",
+        "-c", "config_file=/etc/postgresql/postgresql.conf",
+        "-c", "log_min_messages=fatal",
+      ]
+    mem_limit: 1g
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  auth:
+    container_name: larvis-auth
+    image: supabase/gotrue:v2.196.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL}
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_URI_ALLOW_LIST: ${ADDITIONAL_REDIRECT_URLS}
+      # Single-User-App: niemand außer dem Owner darf sich anlegen (Konto per Admin-API anlegen).
+      GOTRUE_DISABLE_SIGNUP: "true"
+
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: ${JWT_EXPIRY}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      # ES256-Signatur. Ohne sie prüft getClaims in api/_lib/mcpAuth.ts nicht
+      # lokal gegen die JWKS, sondern schickt pro Anfrage einen HTTP-Call hierher.
+      GOTRUE_JWT_KEYS: ${JWT_KEYS}
+      GOTRUE_JWT_ISSUER: ${API_EXTERNAL_URL}/auth/v1
+
+      # Bindet Tokens des OAuth-Servers an die MCP-URL (aud), siehe mcp_access_token_hook
+      # in supabase/migrations/20260101000000_basis.sql. Ohne den Hook weist /api/mcp jedes
+      # Token mit 401 ab, solange MCP_RESOURCE_URL in /opt/larvis/.env gesetzt ist.
+      GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED: "true"
+      GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI: pg-functions://postgres/public/mcp_access_token_hook
+
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      # Adressen gelten sofort als bestätigt; es gibt ohnehin nur das eine,
+      # von Hand angelegte Konto.
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+
+      # Anmeldung per Passwort oder per 6-stelligem Code aus einer Mail. Der
+      # Code-Weg ist signInWithOtp + verifyOtp(type 'email'); verschickt wird
+      # dabei die Magic-Link-Vorlage, die hier nur den Code enthält, keinen Link.
+      # Versand über einen SMTP-Dienst deiner Wahl, Standard Port 587 mit STARTTLS. Port 465
+      # scheidet oft aus, weil manche Cloud-Anbieter ausgehende Verbindungen auf 25 und 465
+      # sperren (der Code-Versand läuft dann in einen Timeout). SMTP_HOST, SMTP_USER,
+      # SMTP_PASS und SMTP_ADMIN_EMAIL (Absenderadresse auf einer beim Dienst verifizierten
+      # Domain) stehen in .env.
+      GOTRUE_SMTP_HOST: ${SMTP_HOST}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT:-587}
+      GOTRUE_SMTP_USER: ${SMTP_USER}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS}
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
+      GOTRUE_SMTP_SENDER_NAME: Larvis
+      # Frühestens alle 30 s ein neuer Code an dieselbe Adresse.
+      GOTRUE_SMTP_MAX_FREQUENCY: 30s
+      GOTRUE_MAILER_OTP_LENGTH: 6
+      # Sekunden: ein Code gilt 10 Minuten.
+      GOTRUE_MAILER_OTP_EXP: 600
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Dein Larvis-Code"
+      # Die Vorlage liefert der App-Container aus (apps/web/public/mail/),
+      # erreichbar über das gemeinsame Netz "web". GoTrue lädt sie per HTTP,
+      # hält sie bis zu 10 Minuten im Speicher und fällt auf seine
+      # eingebaute Link-Vorlage zurück, wenn der erste Abruf scheitert.
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://larvis:3000/mail/magic-link.html
+
+      # OAuth-2.1-Server für den claude.ai-Connector. Der Pfad muss exakt der
+      # Route in der App entsprechen (apps/web/src/routes/OAuthConsent.tsx),
+      # GoTrue baut daraus SITE_URL + PATH + ?authorization_id=…
+      GOTRUE_OAUTH_SERVER_ENABLED: "true"
+      GOTRUE_OAUTH_SERVER_ALLOW_DYNAMIC_REGISTRATION: "true"
+      GOTRUE_OAUTH_SERVER_AUTHORIZATION_PATH: /oauth/consent
+      GOTRUE_OAUTH_SERVER_AUTHORIZATION_TTL: 10m
+    networks: [default, web]
+    mem_limit: 192m
+    logging: *logging
+
+  rest:
+    container_name: larvis-rest
+    image: postgrest/postgrest:v14.17
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "postgrest", "--ready"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,storage
+      PGRST_DB_MAX_ROWS: 1000
+      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_ADMIN_SERVER_HOST: localhost
+      # Nimmt das JWKS entgegen und prüft damit sowohl die neuen ES256-Tokens
+      # als auch die HS256-Schlüssel anon/service_role.
+      PGRST_JWT_SECRET: ${JWT_JWKS}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY}
+    command: ["postgrest"]
+    networks: [default, web]
+    mem_limit: 256m
+    logging: *logging
+
+  realtime:
+    # Der Name ist Absicht: Realtime liest den Tenant aus dem ersten Label des
+    # Host-Headers. Caddy muss ihn passend setzen (siehe Caddyfile.larvis).
+    container_name: realtime-dev.larvis-realtime
+    image: supabase/realtime:v2.134.10
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sSfL --head -o /dev/null -H \"Authorization: Bearer ${ANON_KEY}\" http://localhost:4000/api/tenants/realtime-dev/health",
+        ]
+      timeout: 5s
+      interval: 30s
+      retries: 3
+      start_period: 15s
+    environment:
+      PORT: 4000
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: postgres
+      DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY}
+      API_JWT_SECRET: ${JWT_SECRET}
+      API_JWT_JWKS: ${JWT_JWKS}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      METRICS_JWT_SECRET: ${JWT_SECRET}
+      ERL_AFLAGS: -proto_dist inet_tcp
+      DNS_NODES: "''"
+      RLIMIT_NOFILE: "10000"
+      APP_NAME: realtime
+      SEED_SELF_HOST: "true"
+      RUN_JANITOR: "true"
+    networks:
+      default:
+      web:
+        aliases: [larvis-realtime]
+    mem_limit: 512m
+    logging: *logging
+
+  storage:
+    container_name: larvis-storage
+    image: supabase/storage-api:v1.74.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    healthcheck:
+      # 127.0.0.1 statt localhost: das löst im Container zuerst auf ::1 auf,
+      # und storage-api lauscht nur auf IPv4.
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5000/status"]
+      timeout: 5s
+      interval: 5s
+      retries: 3
+      start_period: 10s
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      JWT_JWKS: ${JWT_JWKS}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      STORAGE_PUBLIC_URL: ${API_EXTERNAL_URL}/storage/v1
+      REQUEST_ALLOW_X_FORWARDED_PATH: "true"
+      # Mindestens so groß wie das größte Bucket-Limit der Basis-Migration (uploads, 50 MB).
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      GLOBAL_S3_BUCKET: stub
+      TENANT_ID: larvis
+      REGION: local
+      # Die App holt nur signierte URLs, keine Transformationen — imgproxy entfällt.
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+    volumes:
+      - ./storage:/var/lib/storage:Z
+    networks: [default, web]
+    mem_limit: 256m
+    logging: *logging
+
+networks:
+  # Interne Zustellung zwischen den fünf Diensten, inklusive der Datenbank.
+  default:
+  # Der gemeinsame Proxy-Bus des Servers. Die Datenbank hängt hier nicht drin.
+  web:
+    external: true
+
+volumes:
+  db-config:

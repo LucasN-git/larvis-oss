@@ -1,0 +1,50 @@
+name: CI
+
+# Prüft jeden Stand: Typen in allen Workspaces, die Tests von shared und web, dann der
+# Produktions-Build mit Platzhalterwerten. Die Platzhalter sind Absicht: der Build bricht ohne
+# gesetzte Supabase-Werte ab (Dockerfile, apps/web/src/lib/supabase.ts), und hier geht es nur
+# darum, dass er durchläuft, nicht gegen welches Backend.
+#
+# workflow_call macht diesen Ablauf für andere Workflows aufrufbar. Der Release ruft ihn als Tor
+# vor dem Bauen auf.
+on:
+  push:
+  pull_request:
+  workflow_call:
+
+jobs:
+  pruefen:
+    name: Typen, Tests, Build
+    runs-on: ubuntu-latest
+
+    env:
+      VITE_SUPABASE_URL: https://example.invalid
+      VITE_SUPABASE_ANON_KEY: ci-platzhalter
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Abhängigkeiten
+        run: npm ci
+
+      # shared exportiert seine Typen aus dist/, das nicht im Repo liegt. Ohne diesen Build
+      # finden web und mcp-server das Paket in einem frischen Checkout nicht.
+      - name: shared bauen
+        run: npm run build -w @larvis/shared
+
+      - name: Typen
+        run: npm run typecheck
+
+      - name: Tests
+        run: |
+          npm test -w @larvis/shared
+          npm test -w @larvis/mcp-server
+          npm test -w @larvis/web
+
+      - name: Build wie im Image
+        run: npm run build:selfhost -w @larvis/web
