@@ -40,7 +40,7 @@ Facette ist der thematische Bereich: ein kurzer, frei vergebener Text (klein ges
 Datenbank vorkommen, und \`list_areas\` zählt sie auf. Vor dem Einordnen einen vorhandenen
 Bereich wiederverwenden (gleiche Schreibweise) und nur dann einen neuen anlegen, wenn keiner
 passt. Ein Eintrag liegt dort, wo man ihn suchen würde. Die Form eines Fundes ist kein
-Bereich, sondern ein Tag (\`nachmachen\`, \`idee\`). Ein Fund, der für zwei
+Bereich, sondern ein Tag (\`nachmachen\`, \`umsetzen\`, \`idee\`). Ein Fund, der für zwei
 Themen taugt, hat einen Hauptbereich (\`area\`) und den zweiten in \`also_areas\` — er wird
 nicht zweimal angelegt; ein Bereichsfilter findet ihn in beiden. Darunter
 Freitext-Kategorie, Tags, Notizen und die Quelle (Plattform, Medientyp, Autor, Länge).
@@ -49,8 +49,14 @@ Dump-Kommentar übernommen, bei erneutem Speichern um eine datierte Zeile ergän
 und Tags sind Teil der Volltextsuche; die Datenbank sortiert Treffer nicht nach Relevanz, das
 Gewichten nach Kommentar übernimmt der aufrufende Agent. Zwei verschiedene Funde aus derselben
 Quelle (etwa der Inhalt eines Videos und die Technik, die es zeigt) sind zwei Einträge mit
-derselben URL. Tools: \`list_areas\`, \`list_entries\`, \`find_entry\`, \`upsert_entry\` (die
-Bereichsregeln stehen in seiner Beschreibung), \`delete_entry\`, \`restore_entry\`.
+derselben URL. Ein Eintrag kann einen Kontext tragen (\`project\`): das Hauptprojekt, für das
+er gespeichert wurde; Unterprojekte sind kein Kontext. Die lebenden Einträge mit Tag
+\`nachmachen\` oder \`umsetzen\` bilden in der App die Liste „Machen", nach Kontext gruppiert,
+Einträge ohne Kontext in einer eigenen Gruppe. Abhaken dort setzt \`done_at\` (über MCP
+\`upsert_entry {done: true}\`); der Eintrag bleibt in der Sammlung. \`list_entries\` und
+\`find_entry\` filtern mit \`project\`, \`list_entries\` zusätzlich mit \`done\`.
+Tools: \`list_areas\`, \`list_entries\`, \`find_entry\`, \`upsert_entry\` (die
+Bereichs- und Kontextregeln stehen in seiner Beschreibung), \`delete_entry\`, \`restore_entry\`.
 
 ### Notizen (Tabelle \`notes\`)
 Schnelles Festhalten von **eigenem** Wissen, immer an einem Projekt und dort verwaltet (eine

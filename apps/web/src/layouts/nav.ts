@@ -1,4 +1,4 @@
-import { Archive, CalendarDays, FolderTree, GraduationCap, House, Inbox, Lightbulb, ListChecks, MapPin, MoreHorizontal, Users } from 'lucide-react';
+import { Archive, CalendarDays, FolderTree, GraduationCap, Hammer, House, Inbox, Lightbulb, ListChecks, MapPin, MoreHorizontal, Users } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { MODULES } from '../lib/modules';
 
@@ -24,6 +24,8 @@ const ORTE: NavItem = { to: '/orte', label: 'Orte', icon: MapPin };
 // Die sortierte Sammlung (Tabelle entries, alle Bereiche in einem Tab mit Filtern).
 // Der rohe Eingangsstapel heißt in der UI „Dump“ und lebt als Karte auf der Heute-Seite.
 const INBOX: NavItem = { to: '/inbox', label: 'Inbox', icon: Inbox };
+// Einträge zum Nachmachen und Umsetzen, nach Kontext gruppiert; Abhaken setzt sie auf erledigt.
+const MACHEN: NavItem = { to: '/machen', label: 'Machen', icon: Hammer };
 const ARCHIV: NavItem = { to: '/archiv', label: 'Archiv', icon: Archive };
 const MEHR: NavItem = { to: '/mehr', label: 'Mehr', icon: MoreHorizontal };
 
@@ -36,6 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
   LEARNINGS,
   ...OPTIONAL(LEARNWEB, MODULES.learnweb),
   INBOX,
+  MACHEN,
   KALENDER,
   KONTAKTE,
   ORTE,
@@ -47,4 +50,4 @@ export const BOTTOM_NAV: NavItem[] = [TODOS, PROJEKTE, HEUTE, KALENDER, MEHR];
 
 // Ziele, die es nicht in die Bottom-Bar geschafft haben — die „Mehr"-Seite
 // zeigt aber alle NAV_ITEMS. Bei diesen Routen leuchtet der Mehr-Tab.
-export const MORE_ROUTES: string[] = [MEHR.to, LEARNINGS.to, LEARNWEB.to, INBOX.to, KONTAKTE.to, ORTE.to, ARCHIV.to];
+export const MORE_ROUTES: string[] = [MEHR.to, LEARNINGS.to, LEARNWEB.to, INBOX.to, MACHEN.to, KONTAKTE.to, ORTE.to, ARCHIV.to];

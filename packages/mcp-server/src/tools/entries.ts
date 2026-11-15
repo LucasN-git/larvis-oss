@@ -1,6 +1,14 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { AREA_MAX_LENGTH, SOURCE_MEDIA_TYPES, SOURCE_PLATFORMS, normalizeArea, normalizeAreas } from '@larvis/shared';
+import {
+  AREA_MAX_LENGTH,
+  SOURCE_MEDIA_TYPES,
+  SOURCE_PLATFORMS,
+  normalizeArea,
+  normalizeAreas,
+  resolveContextProject,
+  type ContextProject,
+} from '@larvis/shared';
 import { db } from '../supabase.js';
 import { areaFilter, fail, guard, ok, unwrap } from '../util.js';
 
@@ -8,14 +16,24 @@ const COLS =
   'id,area,also_areas,name,url,description,category,tags,comment,notes_md,' +
   'source_platform,source_media_type,source_author,source_author_handle,source_title,' +
   'source_published_at,source_duration_seconds,source_word_count,source_page_count,' +
-  'upload_id,captured_at,created_at,updated_at,deleted_at';
-// Lesepfad mit Datei-Embed; der Schreibpfad bleibt skalar.
-const COLS_READ = `${COLS},upload:uploads(id,filename,mime_type,size_bytes,storage_path,created_at)`;
+  'upload_id,project_id,done_at,captured_at,created_at,updated_at,deleted_at';
+// Kontext als Slug; withContext macht daraus das Feld project (gelöschtes Projekt = kein Kontext).
+const CONTEXT_EMBED = 'context:projects!entries_project_id_fkey(slug,deleted_at)';
+// Lesepfad mit Datei- und Kontext-Embed; der Schreibpfad bleibt skalar plus Kontext.
+const COLS_READ = `${COLS},upload:uploads(id,filename,mime_type,size_bytes,storage_path,created_at),${CONTEXT_EMBED}`;
+const COLS_WRITTEN = `${COLS},${CONTEXT_EMBED}`;
 // Schmaler Lesepfad (brief:true) für einen Such-Skill, der viele Treffer überfliegt:
 // ohne notes_md und Datei-Embed, damit die Antwort klein bleibt.
 const COLS_BRIEF =
   'id,area,also_areas,name,url,category,tags,description,comment,' +
-  'source_platform,source_author_handle,source_title,upload_id,created_at';
+  `source_platform,source_author_handle,source_title,upload_id,project_id,done_at,created_at,${CONTEXT_EMBED}`;
+
+type ContextEmbed = { context?: { slug: string; deleted_at: string | null } | null };
+/** Ersetzt den Embed durch project: Slug des Kontexts oder null. */
+function withContext<R extends ContextEmbed>({ context, ...row }: R) {
+  return { ...row, project: context && !context.deleted_at ? context.slug : null };
+}
+const withContexts = (rows: unknown) => ((rows ?? []) as ContextEmbed[]).map(withContext);
 
 // The area rules below are the contract a filing skill relies on: areas are free text, so
 // consistency comes from reusing the names list_areas returns.
@@ -24,8 +42,22 @@ const AREA_RULES = [
   'Call list_areas first and reuse an existing area whenever one fits — the spelling must match exactly; introduce a new area only when nothing fits.',
   'File an entry where the user would search for it later — by topic, not by form. If the user left a dump note, it decides the area.',
   'One find that serves two topics gets a main area (area) and the second in also_areas — never file it twice. Two different finds from one source are two entries with the same url.',
-  "Form is a tag, not an area: add 'nachmachen' for something to recreate and 'idee' for an idea, alongside the topic tags.",
+  "Form is a tag, not an area: add 'nachmachen' for something to recreate, 'umsetzen' for something to put into practice and 'idee' for an idea, alongside the topic tags.",
 ].join(' ');
+
+// Der Vertrag zum Kontext (entries.project_id) und zur Liste „Machen".
+const CONTEXT_RULES =
+  'project: the context of the entry — the top-level project it was saved for, as slug or id (list_projects, parent_id null). ' +
+  'Sub-projects, deleted and unknown projects are rejected with the list of valid slugs. Set it when the user\'s note or the entry clearly belongs to one project; otherwise leave it out. ' +
+  'On an update, an omitted project keeps the stored one and null clears it. ' +
+  "Entries tagged nachmachen or umsetzen form the app's list \"Machen\", grouped by context (entries without context form their own group). " +
+  'done: true checks the entry off there (done_at = now; it stays in the collection), false reopens it; omitted keeps the stored state.';
+
+/** Kontext-Angabe (Slug oder id) zu einem Hauptprojekt; der Fehler nennt die gültigen Slugs. */
+async function contextProject(input: string): Promise<{ project: ContextProject } | { error: string }> {
+  const projects = unwrap(await db.from('projects').select('id,slug,name,parent_id,status,sort_order,deleted_at')) as ContextProject[];
+  return resolveContextProject(input, projects);
+}
 
 const areaField = z
   .string()
@@ -54,11 +86,19 @@ const ENTRY_FIELDS = {
   source_page_count: z.number().int().nullable().optional(),
   upload_id: z.string().nullable().optional(),
   captured_at: z.string().optional(),
+  project: z.string().nullable().optional(),
+  done: z.boolean().optional(),
 };
 
 type EntryArgs = z.infer<z.ZodObject<typeof ENTRY_FIELDS>>;
 
-async function upsertEntry(args: EntryArgs) {
+async function upsertEntry({ project, done, ...args }: EntryArgs) {
+  let project_id: string | null | undefined;
+  if (project !== undefined) {
+    const ctx = project === null ? null : await contextProject(project);
+    if (ctx && 'error' in ctx) return fail(ctx.error);
+    project_id = ctx ? ctx.project.id : null;
+  }
   const area = normalizeArea(args.area);
   if (!area) return fail('area must not be empty — pick one from list_areas or name a new one.');
   // Der Hauptbereich steht nie in also_areas (DB-Check); doppelte Werte fallen weg. Ohne
@@ -69,8 +109,15 @@ async function upsertEntry(args: EntryArgs) {
     const cur = unwrap(await db.from('entries').select('also_areas').eq('id', args.id).maybeSingle());
     if (cur?.also_areas?.includes(area)) also = cur.also_areas;
   }
-  const row = { ...args, area, ...(also ? { also_areas: normalizeAreas(also, area) } : {}) };
-  return ok(unwrap(await db.from('entries').upsert(row).select(COLS).single()));
+  const row = {
+    ...args,
+    area,
+    ...(also ? { also_areas: normalizeAreas(also, area) } : {}),
+    ...(project_id !== undefined ? { project_id } : {}),
+    ...(done !== undefined ? { done_at: done ? new Date().toISOString() : null } : {}),
+  };
+  const written = unwrap(await db.from('entries').upsert(row).select(COLS_WRITTEN).single()) as unknown as ContextEmbed;
+  return ok(withContext(written));
 }
 
 export function registerEntryTools(server: McpServer) {
@@ -81,8 +128,9 @@ export function registerEntryTools(server: McpServer) {
       description:
         `List saved entries (the sorted side of the second brain), newest first. Filter by area (free text, see list_areas; matches the main area or also_areas), ` +
         `category, a single tag, source_platform, exact url (all entries filed from one source), ` +
-        `upload_id (all entries filed from one uploaded file), or since (ISO timestamp, created_at >=). Soft-deleted entries are hidden unless include_deleted. ` +
-        `brief:true returns only id, area, also_areas, name, url, category, tags, description, comment, source_platform, source_author_handle, source_title, upload_id, created_at (no notes_md, no file) — use it to scan many entries.`,
+        `upload_id (all entries filed from one uploaded file), project (context: top-level project slug or id), done (true: checked off in "Machen", false: open), or since (ISO timestamp, created_at >=). Soft-deleted entries are hidden unless include_deleted. ` +
+        `Every entry carries project (context slug, null without context), project_id and done_at. ` +
+        `brief:true returns only id, area, also_areas, name, url, category, tags, description, comment, source_platform, source_author_handle, source_title, upload_id, project, project_id, done_at, created_at (no notes_md, no file) — use it to scan many entries.`,
       inputSchema: {
         area: z.string().optional(),
         category: z.string().optional(),
@@ -90,14 +138,18 @@ export function registerEntryTools(server: McpServer) {
         source_platform: z.enum(SOURCE_PLATFORMS).optional(),
         url: z.string().optional(),
         upload_id: z.string().optional(),
+        project: z.string().optional(),
+        done: z.boolean().optional(),
         since: z.string().optional(),
         include_deleted: z.boolean().optional(),
         limit: z.number().int().positive().max(500).optional(),
         brief: z.boolean().optional(),
       },
     },
-    async ({ area, category, tag, source_platform, url, upload_id, since, include_deleted, limit, brief }) =>
+    async ({ area, category, tag, source_platform, url, upload_id, project, done, since, include_deleted, limit, brief }) =>
       guard(async () => {
+        const ctx = project ? await contextProject(project) : null;
+        if (ctx && 'error' in ctx) return fail(ctx.error);
         let q = db
           .from('entries')
           .select(brief ? COLS_BRIEF : COLS_READ)
@@ -109,9 +161,11 @@ export function registerEntryTools(server: McpServer) {
         if (source_platform) q = q.eq('source_platform', source_platform);
         if (url) q = q.eq('url', url);
         if (upload_id) q = q.eq('upload_id', upload_id);
+        if (ctx) q = q.eq('project_id', ctx.project.id);
+        if (done !== undefined) q = done ? q.not('done_at', 'is', null) : q.is('done_at', null);
         if (since) q = q.gte('created_at', since);
         if (limit) q = q.limit(limit);
-        return ok(unwrap(await q));
+        return ok(withContexts(unwrap(await q)));
       }),
   );
 
@@ -120,21 +174,25 @@ export function registerEntryTools(server: McpServer) {
     {
       title: 'Find entry',
       description:
-        "Full-text search across entries (the user's comment, name, tags, description, category, source author/title, notes), optionally within one area (main area or also_areas). " +
+        "Full-text search across entries (the user's comment, name, tags, description, category, source author/title, notes), optionally within one area (main area or also_areas) and one context (project: top-level project slug or id). " +
         "The user's comment (their own reason for saving the find) and the tags are part of the search. Hits come back unranked (no relevance order); weighing them by comment is up to the caller. " +
         'Run this before upsert_entry to avoid duplicates. Excludes soft-deleted entries. ' +
-        'brief:true returns only id, area, also_areas, name, url, category, tags, description, comment, source_platform, source_author_handle, source_title, upload_id, created_at (no notes_md, no file) — use it to scan many hits.',
-      inputSchema: { query: z.string(), area: z.string().optional(), brief: z.boolean().optional() },
+        'Every hit carries project (context slug or null), project_id and done_at. ' +
+        'brief:true returns only id, area, also_areas, name, url, category, tags, description, comment, source_platform, source_author_handle, source_title, upload_id, project, project_id, done_at, created_at (no notes_md, no file) — use it to scan many hits.',
+      inputSchema: { query: z.string(), area: z.string().optional(), project: z.string().optional(), brief: z.boolean().optional() },
     },
-    async ({ query, area, brief }) =>
+    async ({ query, area, project, brief }) =>
       guard(async () => {
+        const ctx = project ? await contextProject(project) : null;
+        if (ctx && 'error' in ctx) return fail(ctx.error);
         let q = db
           .from('entries')
           .select(brief ? COLS_BRIEF : COLS_READ)
           .is('deleted_at', null)
           .textSearch('search', query, { type: 'websearch', config: 'simple' });
         if (area) q = q.or(areaFilter(normalizeArea(area)));
-        return ok(unwrap(await q));
+        if (ctx) q = q.eq('project_id', ctx.project.id);
+        return ok(withContexts(unwrap(await q)));
       }),
   );
 
@@ -155,7 +213,8 @@ export function registerEntryTools(server: McpServer) {
         'source_* describe where it came from (platform, media type, author, handle, title, published date as YYYY-MM-DD, ' +
         'duration in seconds for video/audio, word count for text, page count for PDFs): omit rather than guess. ' +
         'captured_at is when the item entered the dump (defaults to now). tags: 3–8 kebab-case tags incl. spelling variants of the core term (e.g. meal-prep, mealprep). ' +
-        'upload_id: the uploaded file the entry comes from — pass the dump item\'s upload.id, set source_platform "upload" and leave url null for a pure file item; dedup file items with list_entries {upload_id}.',
+        'upload_id: the uploaded file the entry comes from — pass the dump item\'s upload.id, set source_platform "upload" and leave url null for a pure file item; dedup file items with list_entries {upload_id}. ' +
+        CONTEXT_RULES,
       inputSchema: ENTRY_FIELDS,
     },
     async (args) => guard(() => upsertEntry(args)),

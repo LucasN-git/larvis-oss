@@ -13,6 +13,7 @@ import { ProjectDetail } from './routes/ProjectDetail';
 import { Personal } from './routes/Personal';
 import { Learnings } from './routes/Learnings';
 import { Inbox } from './routes/Inbox';
+import { Machen } from './routes/Machen';
 import { Learnweb } from './routes/Learnweb';
 import { LearnwebCourse } from './routes/LearnwebCourse';
 import { LearnwebVideo } from './routes/LearnwebVideo';
@@ -56,6 +57,7 @@ export function App() {
                     </>
                   )}
                   <Route path="inbox" element={<Inbox />} />
+                  <Route path="machen" element={<Machen />} />
                   <Route path="calendar" element={<Calendar />} />
                   <Route path="contacts" element={<Contacts />} />
                   <Route path="orte" element={<Places />} />

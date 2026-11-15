@@ -39,8 +39,3 @@
 }
 /* Die Gruppe ist eine Flex-Spalte: Zeilen behalten ihre Höhe, statt zu stauchen. */
 .group.list--scroll > * { flex-shrink: 0; }
-
-/* Project colour: the open check ring takes the effective project colour
-   (sub-projects inherit). Done rows keep the solid ink of .check. */
-.check.check--proj:not([data-done='true']) { box-shadow: inset 0 0 0 2px var(--proj); }
-.check.check--proj:not([data-done='true']):hover { color: var(--proj); }

@@ -66,13 +66,15 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
   );
 }
 
-interface EntryItemProps {
+export interface EntryItemProps {
   entry: Entry;
   /** Wie viele Einträge sich die Quelle teilen; ab zwei erscheint der „×N"-Chip. */
   shared: number;
   /** Die Learnings, in die der Eintrag einfließt. */
   learnings: EntryLearningLink[];
   onEdit: () => void;
+  /** Ersetzt in der Zeile das Bereichs-Icon, etwa durch den Haken in „Machen". */
+  lead?: React.ReactNode;
 }
 
 // div[role=button] statt <button>: Zeile und Kachel enthalten den Link oder den
@@ -181,12 +183,14 @@ function SourceButton({ entry: e, labelled = false }: { entry: Entry; labelled?:
   );
 }
 
-function EntryRow({ entry: e, shared, learnings, onEdit }: EntryItemProps) {
+export function EntryRow({ entry: e, shared, learnings, onEdit, lead }: EntryItemProps) {
   return (
     <div className="item-row entry-row" {...editTrigger(onEdit)}>
-      <div className="icon-tile icon-tile--sm">
-        <AreaIcon size={14} />
-      </div>
+      {lead ?? (
+        <div className="icon-tile icon-tile--sm">
+          <AreaIcon size={14} />
+        </div>
+      )}
       <div className="item-row__main">
         <div className="item-row__title">{e.name}</div>
         {e.comment ? (

@@ -23,6 +23,9 @@ Larvis ist für den Eigenbetrieb gedacht, jede Installation gehört genau einem 
   iOS-Kurzbefehl, samt eigenem Kommentar, warum du sie aufhebst). Claude sortiert sie danach als
   Einträge in die Inbox: eine Sammlung fremder Funde (Artikel, Videos, Rezepte, Orte …) mit
   Quelle, Kategorie, Tags und Volltextsuche.
+- **Machen:** Einträge mit dem Tag `nachmachen` oder `umsetzen` stehen zusätzlich als
+  Abhakliste im Tab „Machen", gruppiert nach ihrem Kontext (dem Projekt, für das sie
+  gespeichert wurden). Abhaken setzt sie auf erledigt; sie bleiben in der Inbox.
 - **Frei vergebene Bereiche:** Einträge und Wiki-Seiten liegen in Bereichen, die du selbst
   benennst („kochen", „reisen" …). Es gibt keine vorgegebenen Bereiche; die Filter entstehen aus
   dem, was du anlegst, und Claude fragt über `list_areas` ab, welche es schon gibt.
@@ -74,8 +77,10 @@ deploy/             Eigenbetrieb auf einem Server mit Docker (siehe deploy/READM
 claudeai-skills/    ein Beispiel-Skill für claude.ai
 ```
 
-Das Schema steht in einer einzigen Migration, `supabase/migrations/20260101000000_basis.sql`.
-Spätere Änderungen kommen als weitere Datei daneben; danach die Typen neu erzeugen:
+Das Schema steht in `supabase/migrations/`: die Basis `20260101000000_basis.sql` und daneben
+jede spätere Änderung als eigene Datei (etwa `20261115120000_entries_kontext.sql` für Kontext und
+„Machen"), eingespielt in der Reihenfolge der Dateinamen. Nach einer Schema-Änderung die Typen
+neu erzeugen:
 `supabase gen types typescript --local > packages/shared/src/database.types.ts`.
 
 ## Schnellstart lokal

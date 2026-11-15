@@ -99,9 +99,19 @@ an. `comment` und Tags sind Teil der Volltextsuche; die Treffer kommen ungerankt
 Gewichten nach Kommentar übernimmt der Aufrufer. `list_entries` und `find_entry` liefern
 mit `brief: true` nur die Felder zum Überfliegen: id, area, also_areas, name, url,
 category, tags, description, comment, source_platform, source_author_handle, source_title,
-upload_id, created_at (ohne `notes_md` und Datei-Embed). Eine Quelle darf mehrere Einträge erzeugen (gleiche `url`). Die Bereichs-Regeln stehen in der
+upload_id, project, project_id, done_at, created_at (ohne `notes_md` und Datei-Embed). Eine Quelle darf mehrere Einträge erzeugen (gleiche `url`). Die Bereichs-Regeln stehen in der
 Beschreibung von `upsert_entry` — sie sind der Vertrag für einen Skill, der den Dump
 einsortiert.
+
+Ein Eintrag kann einen Kontext tragen: das Hauptprojekt, für das er gespeichert wurde (Spalte
+`project_id`). `upsert_entry` nimmt ihn als `project` (Slug oder id; `null` löscht ihn,
+weggelassen bleibt er) und lehnt ein Unterprojekt, ein gelöschtes oder unbekanntes Projekt mit
+der Liste der gültigen Slugs ab; die Datenbank weist ein Unterprojekt zusätzlich per Trigger ab.
+Jede Antwort von `list_entries`, `find_entry` und `upsert_entry` trägt `project` (Slug, `null`
+ohne Kontext oder bei gelöschtem Projekt), `project_id` und `done_at`. `list_entries` und
+`find_entry` filtern mit `project`, `list_entries` zusätzlich mit `done` (abgehakt ja/nein).
+Einträge mit Tag `nachmachen` oder `umsetzen` bilden in der App die Liste „Machen";
+`upsert_entry {done: true}` hakt einen ab (`done_at`), `done: false` holt ihn zurück.
 
 **Dump:** `list_inbox` (mit `unscanned_only`; Datei-Items tragen `upload` samt `signed_url`,
 ~6 h gültig, `note` ist der eigene Kommentar beim Speichern), `add_inbox_item` (mit optionalem

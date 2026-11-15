@@ -9,12 +9,14 @@ import {
   collectAreas,
   normalizeArea,
   normalizeAreas,
+  selectableProjects,
   type Entry,
   type SourceMediaType,
   type SourcePlatform,
 } from '@larvis/shared';
-import { deleteEntry, listTags, upsertEntry } from '../../lib/api';
+import { deleteEntry, listContextProjects, listTags, upsertEntry } from '../../lib/api';
 import { useAutosave } from '../../lib/useAutosave';
+import { useLiveQuery } from '../../lib/useLive';
 import { useToast } from '../../lib/toast';
 import { DatePicker } from '../../components/DateTimePicker';
 import { Drawer } from '../../components/Drawer';
@@ -65,6 +67,9 @@ export function EntryEditorModal({ entry, open, onClose, defaultArea = '', sibli
   const [tags, setTags] = useState<string[]>(entry?.tags ?? []);
   const [comment, setComment] = useState(entry?.comment ?? '');
   const [notes, setNotes] = useState(entry?.notes_md ?? '');
+  // Kontext: ein Hauptprojekt oder keiner; zur Wahl stehen die aktiven plus der gesetzte.
+  const [projectId, setProjectId] = useState(entry?.project_id ?? '');
+  const { data: contexts } = useLiveQuery(listContextProjects, ['projects'], [], 'projects:contexts');
   const [preview, setPreview] = useState(Boolean(entry?.notes_md));
   // Quelle
   const [platform, setPlatform] = useState<SourcePlatform | ''>(entry?.source_platform ?? '');
@@ -92,7 +97,7 @@ export function EntryEditorModal({ entry, open, onClose, defaultArea = '', sibli
   ];
 
   const { state } = useAutosave({
-    value: { area, alsoAreas, name, url, description, category, tags, comment, notes, platform, mediaType, author, handle, title, publishedAt, duration, wordCount, pageCount },
+    value: { area, alsoAreas, name, url, description, category, tags, comment, notes, projectId, platform, mediaType, author, handle, title, publishedAt, duration, wordCount, pageCount },
     canSave: () => Boolean(name.trim() && normalizeArea(area)),
     onSaved: saved,
     onSave: async () => {
@@ -107,6 +112,7 @@ export function EntryEditorModal({ entry, open, onClose, defaultArea = '', sibli
         tags,
         comment: comment.trim(),
         notes_md: notes,
+        project_id: projectId || null,
         source_platform: platform || null,
         source_media_type: mediaType || null,
         source_author: author.trim() || null,
@@ -242,6 +248,12 @@ export function EntryEditorModal({ entry, open, onClose, defaultArea = '', sibli
           </div>
         )}
         <TagInput value={tags} onChange={setTags} suggestions={knownTags} />
+        <select className="input" aria-label="Kontext" value={projectId} onChange={(e) => setProjectId(e.target.value)}>
+          <option value="">Kontext: keiner</option>
+          {selectableProjects(contexts ?? [], projectId).map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
 
         <div className="row between">
           <div className="section-title" style={{ marginBottom: 0 }}>Notizen</div>

@@ -11,6 +11,7 @@ import { removeTodoEvent, syncTodoToCalendar } from './calendar';
 import { todayDueIso } from './format';
 import {
   buildProjectTree,
+  contextProjects,
   defaultProjectPath,
   slugify,
   type Area,
@@ -69,6 +70,22 @@ export async function listProjects(): Promise<Project[]> {
     .returns<Project[]>();
   if (error) throw error;
   return data;
+}
+
+/**
+ * Mögliche Kontexte eines Eintrags: alle Hauptprojekte, die nicht gelöscht sind (auch inaktive
+ * und archivierte, damit eine bestehende Zuordnung sichtbar bleibt). Reihenfolge wie im
+ * Projekte-Tab über contextProjects (@larvis/shared).
+ */
+export async function listContextProjects(): Promise<Project[]> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select(PROJECT_COLS)
+    .is('parent_id', null)
+    .is('deleted_at', null)
+    .returns<Project[]>();
+  if (error) throw error;
+  return contextProjects(data);
 }
 
 /** Archivierte Projekte (status='archived', nicht gelöscht) — für die Archiv-Seite. */
@@ -652,7 +669,7 @@ const ENTRY_COLS =
   'id,area,also_areas,name,url,description,category,tags,comment,notes_md,' +
   'source_platform,source_media_type,source_author,source_author_handle,source_title,' +
   'source_published_at,source_duration_seconds,source_word_count,source_page_count,' +
-  'upload_id,captured_at,created_at,updated_at,deleted_at';
+  'upload_id,project_id,done_at,captured_at,created_at,updated_at,deleted_at';
 // Lesepfad mit Datei-Embed; der Upsert bleibt skalar (und schickt upload_id nie mit,
 // überschreibt es also auch nicht).
 const ENTRY_COLS_READ = `${ENTRY_COLS},upload:uploads(id,filename,mime_type,size_bytes,storage_path,created_at)`;
@@ -673,6 +690,13 @@ export async function upsertEntry(input: Omit<Partial<Entry>, 'upload'> & { name
   if (error) throw error;
   notifyLocalChange('entries');
   return data as unknown as Entry;
+}
+
+/** Hakt einen Eintrag in „Machen" ab (done_at = jetzt) oder holt ihn zurück (null). */
+export async function setEntryDone(id: string, done: boolean) {
+  const { error } = await supabase.from('entries').update({ done_at: done ? now() : null }).eq('id', id);
+  if (error) throw error;
+  notifyLocalChange('entries');
 }
 
 export async function deleteEntry(id: string) {

@@ -259,9 +259,11 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           description: string
+          done_at: string | null
           id: string
           name: string
           notes_md: string
+          project_id: string | null
           search: unknown
           source_author: string | null
           source_author_handle: string | null
@@ -287,9 +289,11 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string
+          done_at?: string | null
           id?: string
           name: string
           notes_md?: string
+          project_id?: string | null
           search?: never
           source_author?: string | null
           source_author_handle?: string | null
@@ -314,9 +318,11 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           description?: string
+          done_at?: string | null
           id?: string
           name?: string
           notes_md?: string
+          project_id?: string | null
           search?: never
           source_author?: string | null
           source_author_handle?: string | null
@@ -333,6 +339,13 @@ export type Database = {
           url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: 'entries_project_id_fkey'
+            columns: ['project_id']
+            isOneToOne: false
+            referencedRelation: 'projects'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'entries_upload_id_fkey'
             columns: ['upload_id']

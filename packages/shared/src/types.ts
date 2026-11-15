@@ -469,6 +469,14 @@ export interface Entry {
   source_page_count: number | null;
   /** Hochgeladene Datei, aus der der Eintrag stammt (dieselbe uploads-Zeile wie beim Dump-Item). */
   upload_id: string | null;
+  /**
+   * Kontext: das Hauptprojekt (parent_id null), für das der Fund gespeichert wurde, oder null.
+   * Optional an jedem Eintrag; „Machen" gruppiert danach, ohne Kontext in „Ohne Kontext"
+   * (machen.ts). Ein Unterprojekt weist die Datenbank ab.
+   */
+  project_id: string | null;
+  /** Abgehakt in „Machen" (erledigt); der Eintrag bleibt in der Inbox. null = offen. */
+  done_at: string | null;
   /** Nur gesetzt, wenn die Query den Embed `upload:uploads(...)` mitselektiert. */
   upload?: Upload | null;
   /** Wann das Item in den Dump kam. */

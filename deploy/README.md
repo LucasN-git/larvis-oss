@@ -102,8 +102,9 @@ ssh <server> docker exec -i larvis-db psql -v ON_ERROR_STOP=1 -U postgres -d pos
 ```
 
 Vorher die Platzhalter-URL in `mcp_access_token_hook` auf die eigene Domain stellen (siehe
-oben). Spätere Schema-Änderungen kommen als weitere Datei in `supabase/migrations/` und werden
-genauso eingespielt.
+oben). Spätere Schema-Änderungen liegen als weitere Dateien in `supabase/migrations/` und werden
+danach genauso eingespielt, in der Reihenfolge ihrer Dateinamen (bei einer neuen Installation
+alle nach der Basis).
 
 ## Konto anlegen
 
