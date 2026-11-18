@@ -5,6 +5,7 @@ import {
   explainerVideoPath,
   formatPodcastDuration,
   formatPodcastTime,
+  podcastEpisodePath,
   podcastListenState,
   type ExplainerVideoProgress,
   type MediaShelfItem,
@@ -51,7 +52,7 @@ export function MediaRows({
         const e = s.item;
         const isVideo = s.kind === 'video';
         const state = podcastListenState(isVideo ? videoProgress[e.id] : audioProgress[e.id], e.duration_s);
-        const to = isVideo ? explainerVideoPath(e.slug) : `/podcasts/${encodeURIComponent(e.slug)}`;
+        const to = isVideo ? explainerVideoPath(e.slug) : podcastEpisodePath(e.slug);
         const open = () => navigate(to);
         return (
           <div

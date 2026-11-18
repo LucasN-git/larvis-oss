@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Headphones, MonitorPlay } from 'lucide-react';
-import { explainerVideoPath, formatPodcastDuration, mediaShelf, projectColorMap } from '@larvis/shared';
+import { explainerVideoPath, formatPodcastDuration, mediaShelf, podcastEpisodePath, projectColorMap } from '@larvis/shared';
 import { listProjects } from '../lib/api';
 import { useLiveQuery } from '../lib/useLive';
 import { EmptyState, ListError, Loading } from '../components/states';
@@ -178,7 +178,7 @@ function ExplainerVideoPage({ slug }: { slug: string }) {
         {video.duration_s ? <span>{formatPodcastDuration(video.duration_s)}</span> : null}
         {video.narrator && <span>erzählt von {video.narrator.name}</span>}
         {hasEpisode && (
-          <Link to={`/podcasts/${encodeURIComponent(video.slug)}`} className="pod-episode__switch">
+          <Link to={podcastEpisodePath(video.slug)} className="pod-episode__switch">
             <Headphones size={14} /> Als Podcast hören
           </Link>
         )}

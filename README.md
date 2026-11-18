@@ -234,6 +234,7 @@ OAuth über die eigene Supabase).
 npm run build -w @larvis/shared   # web und mcp-server lesen die Typen aus shared/dist
 npm run typecheck
 npm test
+node --test scripts/podcasts/*.test.mjs
 npm run build:selfhost -w @larvis/web
 ```
 

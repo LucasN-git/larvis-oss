@@ -123,7 +123,7 @@ export function ShareButton({
       className={phase.kind === 'ready' ? 'chip chip--active pod-share' : 'chip pod-share'}
       onClick={onClick}
       disabled={phase.kind === 'loading'}
-      aria-label={phase.kind === 'ready' ? 'Video senden' : 'Als Video teilen'}
+      aria-label={phase.kind === 'loading' ? undefined : phase.kind === 'ready' ? 'Video senden' : 'Als Video teilen'}
       aria-busy={phase.kind === 'loading' || undefined}
     >
       <Share size={15} aria-hidden />

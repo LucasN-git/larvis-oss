@@ -125,11 +125,12 @@ if (DRY) {
   process.exit(0);
 }
 
-const { data: before } = await db
+const { data: before, error: beforeError } = await db
   .from('podcast_episodes')
   .select('audio_path,share_video_path')
   .eq('slug', slug)
   .maybeSingle();
+if (beforeError) fail(`Bisherige Folge nicht lesbar: ${beforeError.message}`);
 const oldPath = before?.audio_path ?? null;
 const oldVideoPath = before?.share_video_path ?? null;
 // Gleicher Pfad heißt gleicher Hash, also dieselbe Tonspur: das alte Teil-Video passt weiter.

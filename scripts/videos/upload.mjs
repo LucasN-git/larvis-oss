@@ -132,7 +132,8 @@ const row = {
   deleted_at: null,
 };
 
-const { data: before } = await db.from('explainer_videos').select('video_path,poster_path').eq('slug', slug).maybeSingle();
+const { data: before, error: beforeError } = await db.from('explainer_videos').select('video_path,poster_path').eq('slug', slug).maybeSingle();
+if (beforeError) fail(`Bisheriges Video nicht lesbar: ${beforeError.message}`);
 
 const up = await db.storage.from(BUCKET).upload(videoPath, bytes, { contentType: 'video/mp4', upsert: true });
 if (up.error) fail(`Upload Video: ${up.error.message}`);

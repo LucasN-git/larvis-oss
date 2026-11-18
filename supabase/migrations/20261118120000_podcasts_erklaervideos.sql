@@ -32,7 +32,9 @@
 -- einen eigenen Pfad (Hash des Inhalts), die App holt sie über signierte URLs. Das Limit je Datei
 -- ist 50 MB, wie das globale Limit des Storage-Dienstes (supabase/config.toml setzt
 -- file_size_limit = "50MiB" ausdrücklich, deploy/supabase/docker-compose.yml setzt
--- FILE_SIZE_LIMIT, Caddy lässt 60 MB durch). Die Erzeuger kodieren darunter: eine halbe Stunde MP3 in 64 kbit/s mono wiegt
+-- FILE_SIZE_LIMIT, Caddy lässt 60 MB durch), und die Upload-Skripte prüfen es vorab mit MAX_BYTES
+-- (scripts/podcasts/upload.mjs, scripts/podcasts/backfill-share-video.mjs, scripts/videos/upload.mjs);
+-- ein höheres Limit heißt, alle diese Stellen anzuheben. Die Erzeuger kodieren darunter: eine halbe Stunde MP3 in 64 kbit/s mono wiegt
 -- rund 15 MB, 15 Minuten 1080p mit Folienbildern um 400 kbit/s rund 45 MB.
 
 create table if not exists public.podcast_episodes (

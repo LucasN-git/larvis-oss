@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Maximize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, SkipBack, SkipForward } from 'lucide-react';
 import { nextChapterStart, shareFileName, type ExplainerVideoProgress } from '@larvis/shared';
 import { Button, IconButton } from '../../components/ui';
@@ -37,6 +37,8 @@ export function ExplainerVideoPlayer({
   progress: ExplainerVideoProgress | null;
 }) {
   const { notify } = useToast();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- neu signierte URL desselben Bilds soll die Media Session nicht neu aufbauen
+  const artwork = useMemo(() => video.poster_url, [video.poster_path]);
   const p = usePlayback<PipVideoElement>({
     path: video.video_path,
     sign: signExplainerVideo,
@@ -52,7 +54,7 @@ export function ExplainerVideoPlayer({
       title: video.title,
       artist: video.narrator ? `${video.subtitle} · ${video.narrator.name}` : video.subtitle,
       album: 'Larvis Erklärvideos',
-      artwork: video.poster_url,
+      artwork,
     },
   });
   const { mediaRef, ready } = p;

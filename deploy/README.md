@@ -106,10 +106,12 @@ oben). Spätere Schema-Änderungen liegen als weitere Dateien in `supabase/migra
 danach genauso eingespielt, in der Reihenfolge ihrer Dateinamen (bei einer neuen Installation
 alle nach der Basis).
 
-Kein Bucket nimmt Dateien über 50 MB, auch die für Podcasts und Erklärvideos nicht. Drei Stellen
+Kein Bucket nimmt Dateien über 50 MB, auch die für Podcasts und Erklärvideos nicht. Diese Stellen
 müssen dazu passen: das Limit des Buckets (Migration), `FILE_SIZE_LIMIT` des Storage-Dienstes
-(`supabase/docker-compose.yml`, 50 MB) und das Body-Limit unter `/storage/v1/*` im
-`Caddyfile.larvis` (60 MB). Wer größere Dateien will, hebt alle drei an.
+(`supabase/docker-compose.yml`, 50 MB), das Body-Limit unter `/storage/v1/*` im
+`Caddyfile.larvis` (60 MB), `MAX_BYTES` in den Upload-Skripten (`scripts/podcasts/upload.mjs`,
+`scripts/podcasts/backfill-share-video.mjs`, `scripts/videos/upload.mjs`) und für den lokalen
+Stack `file_size_limit` in `supabase/config.toml`. Wer größere Dateien will, hebt alle an.
 
 ## Konto anlegen
 

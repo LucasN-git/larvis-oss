@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { parseChapters } from '@larvis/shared';
+import { parseChapters, podcastEpisodePath } from '@larvis/shared';
 import { db } from '../supabase.js';
 import { guard, ok, unwrap } from '../util.js';
 
@@ -41,7 +41,7 @@ export function registerPodcastTools(server: McpServer) {
             ...r,
             chapters: parseChapters(r.chapters).map((c) => ({ title: c.title, start: Math.round(c.start) })),
             progress: byEpisode.get(r.id) ?? null,
-            url: `/podcasts/${r.slug}`,
+            url: podcastEpisodePath(r.slug),
           })),
         );
       }),

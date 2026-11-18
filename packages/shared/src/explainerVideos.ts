@@ -39,6 +39,11 @@ export function parseNarrator(raw: unknown): { name: string } | null {
   return typeof name === 'string' && name.trim() ? { name: name.trim() } : null;
 }
 
+/** Route einer Podcast-Folge. */
+export function podcastEpisodePath(slug: string): string {
+  return `/podcasts/${encodeURIComponent(slug)}`;
+}
+
 /** Route eines Erklärvideos: unter der Folge zum selben Thema, auch wenn es keine Folge gibt. */
 export function explainerVideoPath(slug: string): string {
   return `/podcasts/${encodeURIComponent(slug)}/video`;

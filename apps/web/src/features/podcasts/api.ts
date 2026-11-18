@@ -11,12 +11,6 @@ const SIGN_TTL_SECONDS = 6 * 60 * 60;
 const EPISODE_COLS =
   'id,slug,project_id,title,subtitle,description_md,audio_path,share_video_path,duration_s,chapters,voices,sort_order,created_at,updated_at,project:projects(name)';
 
-type EpisodeRow = Omit<PodcastEpisode, 'chapters' | 'voices'> & {
-  chapters: unknown;
-  voices: unknown;
-  project: { name: string } | null;
-};
-
 /** Folge samt Name ihres Projekts (auch eines archivierten). */
 export type PodcastEpisodeWithProject = PodcastEpisode & { project_name: string | null };
 
@@ -31,16 +25,6 @@ function parseVoices(raw: unknown): PodcastEpisode['voices'] {
     out[k] = typeof role === 'string' && role ? { name, role } : { name };
   }
   return out;
-}
-
-function toEpisode({ project, ...row }: EpisodeRow): PodcastEpisodeWithProject {
-  return {
-    ...row,
-    duration_s: row.duration_s === null ? null : Number(row.duration_s),
-    chapters: parseChapters(row.chapters),
-    voices: parseVoices(row.voices),
-    project_name: project?.name ?? null,
-  };
 }
 
 export interface PodcastLibrary {
@@ -65,7 +49,14 @@ export async function listPodcasts(): Promise<PodcastLibrary> {
   if (progressError) throw progressError;
   const progress: Record<string, PodcastProgress> = {};
   for (const p of progressRows ?? []) progress[p.episode_id] = { ...p, position_s: Number(p.position_s) };
-  return { episodes: ((rows ?? []) as unknown as EpisodeRow[]).map(toEpisode), progress };
+  const episodes: PodcastEpisodeWithProject[] = (rows ?? []).map(({ project, ...row }) => ({
+    ...row,
+    duration_s: row.duration_s === null ? null : Number(row.duration_s),
+    chapters: parseChapters(row.chapters),
+    voices: parseVoices(row.voices),
+    project_name: project?.name ?? null,
+  }));
+  return { episodes, progress };
 }
 
 /** Signierte URL für eine Folge; null, wenn der Storage sie nicht herausgibt. */
