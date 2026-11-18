@@ -107,11 +107,14 @@ danach genauso eingespielt, in der Reihenfolge ihrer Dateinamen (bei einer neuen
 alle nach der Basis).
 
 Kein Bucket nimmt Dateien über 50 MB, auch die für Podcasts und Erklärvideos nicht. Diese Stellen
-müssen dazu passen: das Limit des Buckets (Migration), `FILE_SIZE_LIMIT` des Storage-Dienstes
-(`supabase/docker-compose.yml`, 50 MB), das Body-Limit unter `/storage/v1/*` im
-`Caddyfile.larvis` (60 MB), `MAX_BYTES` in den Upload-Skripten (`scripts/podcasts/upload.mjs`,
-`scripts/podcasts/backfill-share-video.mjs`, `scripts/videos/upload.mjs`) und für den lokalen
-Stack `file_size_limit` in `supabase/config.toml`. Wer größere Dateien will, hebt alle an.
+müssen dazu passen (Pfade ab der Wurzel des Repos): die Limits der Buckets (Basis-Migration für
+`uploads`, `supabase/migrations/20261118120000_podcasts_erklaervideos.sql` für Podcasts und
+Erklärvideos), `FILE_SIZE_LIMIT` des Storage-Dienstes (`deploy/supabase/docker-compose.yml`,
+50 MB), das Body-Limit unter `/storage/v1/*` in `deploy/Caddyfile.larvis` (60 MB), `MAX_BYTES` in
+den Upload-Skripten (`scripts/podcasts/upload.mjs`, `scripts/podcasts/backfill-share-video.mjs`,
+`scripts/videos/upload.mjs`), `MAX_UPLOAD_BYTES` in `apps/web/src/lib/api.ts` (Dump-Upload) und
+für den lokalen Stack `file_size_limit` in `supabase/config.toml`. Wer größere Dateien will, hebt
+alle an.
 
 ## Konto anlegen
 

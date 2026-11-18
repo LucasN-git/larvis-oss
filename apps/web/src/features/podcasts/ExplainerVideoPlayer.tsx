@@ -38,7 +38,7 @@ export function ExplainerVideoPlayer({
 }) {
   const { notify } = useToast();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- neu signierte URL desselben Bilds soll die Media Session nicht neu aufbauen
-  const artwork = useMemo(() => video.poster_url, [video.poster_path]);
+  const artwork = useMemo(() => video.poster_url, [video.poster_path, video.poster_url === null]);
   const p = usePlayback<PipVideoElement>({
     path: video.video_path,
     sign: signExplainerVideo,
