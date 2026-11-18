@@ -31,6 +31,10 @@ Larvis ist für den Eigenbetrieb gedacht, jede Installation gehört genau einem 
   dem, was du anlegst, und Claude fragt über `list_areas` ab, welche es schon gibt.
 - **Learnings (Wiki):** die kuratierte, eigene Fassung eines Themas in ganzen Sätzen, mit
   Grafiken und mit Belegen aus Einträgen und Notizen. Jede Seite hat eine feste Adresse.
+- **Podcasts und Erklärvideos:** fertige Folgen und Videos zum Hören und Ansehen, je einem
+  Projekt zugeordnet, mit Kapiteln, Tempo, Bild-in-Bild und einem Hör- und Sehstand, der auf
+  Handy und PC derselbe ist. Eine Folge lässt sich als Video teilen (WhatsApp, AirDrop, Mail).
+  Erzeugt werden sie außerhalb von Larvis (siehe unten).
 - **Kalender:** ein verbundenes Google-Konto (lesen und schreiben, eigener Kalender „Larvis")
   plus beliebig viele Kalender-Abos über einen geheimen ICS-Link, die nur gelesen werden.
   Ansichten Monat, Agenda, Tafel und Geburtstage; ToDos lassen sich in den Kalender spiegeln.
@@ -65,6 +69,55 @@ Heimatort als Text, ab dem die Fahrzeit zu Orten gemeint ist (`VITE_HOME_PLACE`)
 mit Beispielen stehen in [`apps/web/.env.example`](./apps/web/.env.example). Der MCP-Server
 liest dieselben Namen ohne `VITE_`-Präfix und fällt auf die `VITE_`-Namen zurück.
 
+## Podcasts und Erklärvideos
+
+Larvis spielt Folgen und Erklärvideos nur ab und teilt sie; es erzeugt keine. Der Tab
+„Podcasts" zeigt sie nach Projekt gruppiert, eine Projektseite die ihres Teilbaums. Folge und
+Video zum selben Thema (gleicher Slug) stehen beieinander, und man wechselt mit einem Klick
+zwischen Hören und Ansehen.
+
+Erzeugt werden sie mit dem Claude-Code-Plugin `explainers`, das nicht Teil dieses Repos ist. Es
+macht aus einem Paper, einem Vorlesungsskript oder einem anderen Text eine Podcast-Folge mit zwei
+Stimmen oder ein animiertes Erklärvideo mit Erzähler und Kapiteln, und es legt das Ergebnis in
+genau dem Ordnerformat ab, das die Upload-Skripte erwarten. Installiert wird es aus dem
+öffentlichen Marketplace `LucasN-git/lucas-claude-plugins`:
+
+```bash
+claude plugin marketplace add LucasN-git/lucas-claude-plugins
+claude plugin install explainers@lucas-claude-plugins
+```
+
+Danach in Claude Code `/explainers:explainers-setup` aufrufen; das prüft die Voraussetzungen
+und legt den ElevenLabs-Key ab. Die vollständige Liste der Voraussetzungen und Kosten steht im
+README des Plugins; das Wichtigste:
+
+- **Claude Code mit einem Claude-Abo.** Die Skripte des Plugins rufen `claude -p` auf; ein
+  Anthropic-API-Key ist nicht nötig.
+- **Ein ElevenLabs-Konto mit API-Key** für die Stimmen. Ein bezahlter Plan ist zu empfehlen,
+  das kostenlose Monatskontingent reicht nicht einmal für ein Video. Abgerechnet wird nach
+  Zeichen: ein Erklärvideo braucht rund 12.000 bis 13.000 Zeichen, eine Podcast-Folge mit zwei
+  Stimmen rund 15.000 bis 28.000. Der Key steht in der Umgebung als `ELEVENLABS_API_KEY` oder
+  dort, wo ihn `/explainers:explainers-setup` ablegt. Vertont wird erst nach deiner
+  ausdrücklichen Freigabe; vorher zeigt das Plugin, wie viele Zeichen es braucht und wie viele
+  dir bleiben.
+- **ffmpeg** (mit `ffprobe`, libmp3lame und libx264), **poppler** (`pdftotext`, `pdfinfo`,
+  `pdfunite` für PDF-Quellen), **Python 3.10 oder neuer** mit `faster-whisper` (Zeitmarken der
+  Sprache, läuft lokal), **Node 20** und optional **Google Chrome** oder Chromium (nur für das
+  Teil-Video einer Folge).
+- **Den Service-Role-Key deiner Supabase** in der `.env.local` dieses Repos, zusammen mit
+  `SUPABASE_URL` und `LARVIS_OWNER_ID` (siehe Schnellstart, Schritt 3). Hochgeladen wird mit den
+  Upload-Skripten dieses Repos, entweder von dir selbst oder durch den Skill des Plugins, nachdem
+  du den Upload freigegeben hast:
+
+```bash
+node --env-file=.env.local scripts/podcasts/upload.mjs <ordner> --project <projekt-slug>
+node --env-file=.env.local scripts/videos/upload.mjs <ordner> --project <projekt-slug>
+```
+
+Das Ordnerformat (Dateinamen, Felder der JSON-Datei, Grenzen) steht in
+[`scripts/README.md`](./scripts/README.md#paketformat-der-upload-skripte); wer Folgen oder
+Videos auf anderem Weg erzeugt, legt sie genauso ab. Keine Datei darf größer als 50 MB sein.
+
 ## Aufbau
 
 ```
@@ -72,14 +125,14 @@ apps/web            Web-App (Vite, React, TypeScript) plus api/ (API-Handler) un
 packages/shared     gemeinsame Typen, Logik und die generierten Datenbank-Typen
 packages/mcp-server MCP-Server für Claude (stdio) und Agent-Runner
 supabase/           config.toml für die lokale Supabase und migrations/ (das Schema)
-scripts/            Wartungsskripte: Kontakte importieren, Memories spiegeln, Learnweb
+scripts/            Wartungsskripte: Kontakte importieren, Memories spiegeln, Learnweb, Podcasts und Erklärvideos hochladen
 deploy/             Eigenbetrieb auf einem Server mit Docker (siehe deploy/README.md)
 claudeai-skills/    ein Beispiel-Skill für claude.ai
 ```
 
 Das Schema steht in `supabase/migrations/`: die Basis `20260101000000_basis.sql` und daneben
 jede spätere Änderung als eigene Datei (etwa `20261115120000_entries_kontext.sql` für Kontext und
-„Machen"), eingespielt in der Reihenfolge der Dateinamen. Nach einer Schema-Änderung die Typen
+„Machen", `20261118120000_podcasts_erklaervideos.sql` für Podcasts und Erklärvideos), eingespielt in der Reihenfolge der Dateinamen. Nach einer Schema-Änderung die Typen
 neu erzeugen:
 `supabase gen types typescript --local > packages/shared/src/database.types.ts`.
 
@@ -227,7 +280,7 @@ weist jede andere Breiten-Query zurück. Das Logo ist ein Inline-SVG
 | `npm test` | Tests aller Workspaces |
 | `npm run memory:sync` | Memories nach `~/.claude/globals/larvis-memories.md` schreiben, zum Einbinden in eine CLAUDE.md |
 
-Weitere Skripte (Kontakt-Import, Learnweb) beschreibt [`scripts/README.md`](./scripts/README.md).
+Weitere Skripte (Kontakt-Import, Learnweb, Podcasts und Erklärvideos) beschreibt [`scripts/README.md`](./scripts/README.md).
 
 ## Lizenz
 

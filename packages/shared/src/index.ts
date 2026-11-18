@@ -10,4 +10,6 @@ export * from './overview.js';
 export * from './mensa.js';
 export * from './weather.js';
 export * from './reminders.js';
+export * from './podcasts.js';
+export * from './explainerVideos.js';
 export type { Database, Json } from './database.types.js';

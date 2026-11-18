@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, Pencil, Plus } from 'lucide-react';
-import { PERSONAL_PROJECT_SLUG, PROJECT_STATUS_LABELS, previewOf, projectColorMap } from '@larvis/shared';
+import { PERSONAL_PROJECT_SLUG, PROJECT_STATUS_LABELS, mediaShelf, previewOf, projectColorMap } from '@larvis/shared';
 import { getLearnwebCourseByProjectId, listNotes, listProjects, listTodos, type TodoFilter } from '../lib/api';
 import { useLiveQuery } from '../lib/useLive';
 import { useMediaQuery } from '../lib/useMediaQuery';
@@ -14,16 +14,20 @@ import { ProjectFormModal } from '../features/projects/ProjectFormModal';
 import { ProjectOpenLinks } from '../features/projects/ProjectOpenLinks';
 import { subtreeIds } from '../features/projects/counts';
 import { CoursePanel } from '../features/learnweb/CoursePanel';
+import { MediaRows } from '../features/podcasts/PodcastList';
+import { usePodcastLibrary, useVideoLibrary } from '../features/podcasts/usePodcasts';
 import { MODULES } from '../lib/modules';
 import '../features/projects/projects.css';
 
-type Tab = 'notes' | 'todos' | 'learnweb';
-const TABS: readonly Tab[] = ['notes', 'todos', 'learnweb'];
+type Tab = 'notes' | 'todos' | 'learnweb' | 'podcasts';
+const TABS: readonly Tab[] = ['notes', 'todos', 'learnweb', 'podcasts'];
 
 /**
  * One project: its notes and todos side by side on the desktop, as tabs below.
  * Both cover the whole subtree — sub-projects' notes appear as folders, their
  * todos in the same list. The "Persönlich" project also holds everything without a project.
+ * Podcast-Folgen und Erklärvideos des Teilbaums stehen, falls es welche gibt, auf dem Desktop
+ * unter den Notizen und auf dem Handy in einem eigenen Tab.
  */
 export function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -63,9 +67,18 @@ export function ProjectDetail() {
     [noteKey], // key encodes ids + isPersonal
   );
   const { data: notes } = useLiveQuery(noteFetcher, ['notes'], [noteKey], `notes:${noteKey}`);
+  // Folgen und Erklärvideos des Teilbaums; Abschnitt bzw. Tab erscheinen nur, wenn es welche gibt.
+  const { data: podcastLib } = usePodcastLibrary();
+  const { data: videoLib } = useVideoLibrary();
+  const podcasts = useMemo(() => {
+    const inTree = (e: { project_id: string | null }) => e.project_id !== null && ids.includes(e.project_id);
+    return mediaShelf((podcastLib?.episodes ?? []).filter(inTree), (videoLib?.videos ?? []).filter(inTree));
+  }, [podcastLib, videoLib, ids]);
+  const hasPodcasts = podcasts.length > 0;
 
   const requested = params.get('tab') as Tab | null;
-  const tab: Tab = requested && TABS.includes(requested) && (requested !== 'learnweb' || course) ? requested : 'notes';
+  const available = (t: Tab) => (t !== 'learnweb' || !!course) && (t !== 'podcasts' || hasPodcasts);
+  const tab: Tab = requested && TABS.includes(requested) && available(requested) ? requested : 'notes';
   const setTab = (t: Tab) =>
     setParams(
       (prev) => {
@@ -98,6 +111,9 @@ export function ProjectDetail() {
   );
   const todosPane = (
     <TodoList filter={todoFilter} defaults={defaults} emptyText="Keine offenen ToDos." />
+  );
+  const podcastRows = (
+    <MediaRows items={podcasts} audioProgress={podcastLib?.progress ?? {}} videoProgress={videoLib?.progress ?? {}} />
   );
 
   return (
@@ -163,6 +179,12 @@ export function ProjectDetail() {
                   <CoursePanel course={course} />
                 </section>
               )}
+              {hasPodcasts && (
+                <section>
+                  <div className="section-title">Podcasts</div>
+                  {podcastRows}
+                </section>
+              )}
             </div>
             <aside className="project-split__side">
               <div className="section-title">ToDos</div>
@@ -177,6 +199,7 @@ export function ProjectDetail() {
                   { value: 'notes', label: `Notizen${notes ? ` (${notes.length})` : ''}` },
                   { value: 'todos', label: `ToDos${todos ? ` (${todos.length})` : ''}` },
                   ...(course ? [{ value: 'learnweb' as const, label: 'Learnweb' }] : []),
+                  ...(hasPodcasts ? [{ value: 'podcasts' as const, label: `Podcasts (${podcasts.length})` }] : []),
                 ]}
                 value={tab}
                 onChange={setTab}
@@ -185,6 +208,7 @@ export function ProjectDetail() {
             {tab === 'notes' && notesPane}
             {tab === 'todos' && todosPane}
             {tab === 'learnweb' && course && <CoursePanel course={course} />}
+            {tab === 'podcasts' && podcastRows}
           </>
         )}
       </div>

@@ -22,7 +22,11 @@ export type LiveTable =
   | 'learnweb_videos'
   | 'learnweb_announcements'
   | 'learnweb_events'
-  | 'memories';
+  | 'memories'
+  | 'podcast_episodes'
+  | 'podcast_progress'
+  | 'explainer_videos'
+  | 'explainer_video_progress';
 
 // Local mutation bus. Same-tab writes refresh their queries immediately instead
 // of waiting on the Realtime round-trip. Realtime still drives cross-device sync,

@@ -139,6 +139,11 @@ ist und ein Pfad ein beliebiger Datei-Lesezugriff auf dem Server wäre) in den p
 `learning-files`; das Tool gibt die Markdown-Referenz `![…](larvis-att:<id>)` zurück, die in
 den Body gehört. Die Regeln in den Tool-Beschreibungen sind der Vertrag für Claude.
 
+**Podcasts und Erklärvideos (Tabellen `podcast_episodes`, `explainer_videos`, Tab „Podcasts"):**
+`podcast_list`, `explainer_video_list`, beide nur lesend (mit Projekt, Länge, Kapiteln, Stimmen
+bzw. Erzähler und Hör- bzw. Sehstand). Folgen und Videos kommen über `scripts/podcasts/upload.mjs`
+und `scripts/videos/upload.mjs` herein, nicht über MCP.
+
 **Selbsterklärung:** `get_larvis_overview` erklärt die Software — wofür Dump, Inbox-Tab,
 Notizen, Learnings, Dinge, Projekte, Memories usw. da sind und welcher Ort für was gilt. Die
 Kurzfassung davon geht als Server-`instructions` an jeden Client (Quelle:

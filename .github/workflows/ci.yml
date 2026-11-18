@@ -1,6 +1,6 @@
 name: CI
 
-# Prüft jeden Stand: Typen in allen Workspaces, die Tests von shared und web, dann der
+# Prüft jeden Stand: Typen in allen Workspaces, die Tests der Workspaces und der Skripte, dann der
 # Produktions-Build mit Platzhalterwerten. Die Platzhalter sind Absicht: der Build bricht ohne
 # gesetzte Supabase-Werte ab (Dockerfile, apps/web/src/lib/supabase.ts), und hier geht es nur
 # darum, dass er durchläuft, nicht gegen welches Backend.
@@ -45,6 +45,7 @@ jobs:
           npm test -w @larvis/shared
           npm test -w @larvis/mcp-server
           npm test -w @larvis/web
+          node --test scripts/podcasts/*.test.mjs
 
       - name: Build wie im Image
         run: npm run build:selfhost -w @larvis/web

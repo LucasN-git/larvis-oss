@@ -21,6 +21,11 @@ port = 54323
 [realtime]
 enabled = true
 
+[storage]
+enabled = true
+# Global limit per file; no bucket allows more (uploads, podcasts and explainer videos: 50 MB).
+file_size_limit = "50MiB"
+
 [auth]
 enabled = true
 site_url = "http://localhost:5173"

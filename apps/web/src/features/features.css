@@ -233,6 +233,9 @@
   padding: var(--space-xl) var(--space-md);
   font-size: 14px;
 }
+/* Aktion und Fehlerton der Listen-Zustände (components/states.tsx). */
+.state-action { margin-top: var(--space-sm); }
+.state-error { color: var(--text); }
 
 .meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 

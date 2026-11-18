@@ -246,7 +246,7 @@ services:
       DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
       STORAGE_PUBLIC_URL: ${API_EXTERNAL_URL}/storage/v1
       REQUEST_ALLOW_X_FORWARDED_PATH: "true"
-      # Mindestens so groß wie das größte Bucket-Limit der Basis-Migration (uploads, 50 MB).
+      # Mindestens so groß wie das größte Bucket-Limit der Migrationen (50 MB: uploads, Podcasts, Erklärvideos).
       FILE_SIZE_LIMIT: 52428800
       STORAGE_BACKEND: file
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage

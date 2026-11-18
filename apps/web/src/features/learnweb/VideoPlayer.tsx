@@ -5,6 +5,13 @@ import { Button, IconButton, Segmented } from '../../components/ui';
 import { useMediaQuery } from '../../lib/useMediaQuery';
 import { MQ } from '../../theme/breakpoints';
 import { useToast } from '../../lib/toast';
+import {
+  inPictureInPicture,
+  pictureInPictureSupported,
+  togglePictureInPicture,
+  type LockableOrientation,
+  type PipVideoElement,
+} from '../../lib/pictureInPicture';
 
 const RATES = ['1', '1.25', '1.5', '1.75', '2'] as const;
 type Rate = (typeof RATES)[number];
@@ -23,21 +30,7 @@ function readStoredPosition(videoId: string): number {
 // So lange warten wir, bevor eine sichtbare Pause als Nutzerwunsch gilt.
 const USER_PAUSE_GRACE_MS = 350;
 
-/** Browser-Sonderfälle, die (noch) nicht in lib.dom stehen. */
-type VideoEl = HTMLVideoElement & {
-  autoPictureInPicture?: boolean;
-  webkitSetPresentationMode?: (mode: 'picture-in-picture' | 'inline' | 'fullscreen') => void;
-  webkitPresentationMode?: string;
-  webkitSupportsPresentationMode?: (mode: string) => boolean;
-};
-type LockableOrientation = ScreenOrientation & {
-  lock?: (orientation: 'landscape') => Promise<void>;
-  unlock?: () => void;
-};
-
-function inPictureInPicture(v: VideoEl): boolean {
-  return document.pictureInPictureElement === v || v.webkitPresentationMode === 'picture-in-picture';
-}
+type VideoEl = PipVideoElement;
 
 /**
  * eLecture-Videoelement mit Mobile-Extras:
@@ -93,11 +86,7 @@ export function VideoPlayer({ src, title, videoId }: { src: string; title: strin
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    setPipSupported(
-      Boolean(document.pictureInPictureEnabled) ||
-        v.webkitSupportsPresentationMode?.('picture-in-picture') === true ||
-        typeof v.webkitSetPresentationMode === 'function',
-    );
+    setPipSupported(pictureInPictureSupported(v));
     v.autoPictureInPicture = true; // Safari: PiP automatisch beim App-Wechsel
   }, []);
 
@@ -324,37 +313,7 @@ export function VideoPlayer({ src, title, videoId }: { src: string; title: strin
 
   const togglePip = useCallback(async () => {
     const v = videoRef.current;
-    if (!v) return;
-    try {
-      if (inPictureInPicture(v)) {
-        if (document.pictureInPictureElement === v) await document.exitPictureInPicture();
-        else v.webkitSetPresentationMode?.('inline');
-        return;
-      }
-      if (v.readyState < 1) {
-        notify('Video lädt noch — gleich nochmal versuchen.', 'info');
-        return;
-      }
-      if (document.pictureInPictureEnabled && v.requestPictureInPicture) {
-        await v.requestPictureInPicture();
-      } else if (typeof v.webkitSetPresentationMode === 'function') {
-        // Safari (iPhone/iPad/Mac): wirft nicht — danach prüfen, ob der
-        // Wechsel wirklich stattfand, sonst wäre der Klick stumm.
-        v.webkitSetPresentationMode('picture-in-picture');
-        window.setTimeout(() => {
-          if (v.webkitPresentationMode !== 'picture-in-picture') {
-            notify(
-              'Bild-in-Bild wurde vom Browser abgelehnt. Auf dem iPhone: Larvis in Safari öffnen — als Home-Screen-App erlaubt iOS kein PiP.',
-              'info',
-            );
-          }
-        }, 400);
-      } else {
-        notify('Bild-in-Bild wird von diesem Browser nicht unterstützt.', 'info');
-      }
-    } catch (e) {
-      notify(`Bild-in-Bild nicht möglich: ${e instanceof Error ? e.message : 'unbekannter Fehler'}`, 'error');
-    }
+    if (v) await togglePictureInPicture(v, notify);
   }, [notify]);
 
   return (

@@ -66,7 +66,7 @@ www.{$LARVIS_DOMAIN} {
     }
 
     handle_path /storage/v1/* {
-        # Etwas über dem größten Bucket-Limit (uploads, 50 MB).
+        # Etwas über dem größten Bucket-Limit (50 MB: uploads, Podcasts, Erklärvideos).
         request_body {
             max_size 60MB
         }

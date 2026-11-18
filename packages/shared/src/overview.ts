@@ -9,7 +9,7 @@ export const LARVIS_INSTRUCTIONS = `Larvis ist ein persönliches Life-OS (Web-Ap
 - Inbox-Tab (entries): sortierte Sammlung von Funden über Fremdes (Video, Artikel, Rezept …) in frei vergebenen thematischen Bereichen (list_areas zeigt die vorhandenen; wiederverwenden statt neu erfinden); der eigene Kommentar beim Speichern steht im Eintrag (comment) und ist Teil der Volltextsuche.
 - Notizen (notes): schnelles, projektgebundenes Festhalten von eigenem Wissen; darf roh und unfertig sein.
 - Learnings (learnings): das kuratierte Wiki — aufgeräumte, aktuelle Fassung eines Themas mit Grafiken; frei vergebene Bereiche wie bei Einträgen, fester Slug, Belege aus Einträgen und Notizen.
-- Dinge (items): wo ein Gegenstand liegt. Projekte/ToDos, Kontakte, Kalender, Memories (Fakten über den Nutzer und Regeln für Agenten), Briefings, Wetter; optionale Module (nur wenn konfiguriert): Learnweb (Uni-Kurse), Mensa.
+- Dinge (items): wo ein Gegenstand liegt. Projekte/ToDos, Kontakte, Kalender, Memories (Fakten über den Nutzer und Regeln für Agenten), Briefings, Wetter, Podcasts und Erklärvideos (nur lesend); optionale Module (nur wenn konfiguriert): Learnweb (Uni-Kurse), Mensa.
 - Orte (places): Stammdaten für Termin-Orte mit Auto-Fahrzeit ab dem Heimatort.
 Termine und ToDos bekommen möglichst Projekt, Ort und Erinnerung; ToDos immer mit due_at, weil die Startseite nur fällige und überfällige ToDos zeigt.
 Faustregel: Fremdes → Dump (mit Kommentar) → Eintrag im thematischen Bereich, Form ist ein Tag; eigenes Wissen schnell → Notiz; dauerhaft und schön → Learning; Fakt über den Nutzer → Memory. Alles ist Soft-Delete (delete_*/restore_*). Für Details und Regeln: get_larvis_overview.`;
@@ -133,6 +133,16 @@ Erinnerung: Standard 30 Minuten vorher, ganztägige Termine keine; \`reminder_mi
 (null = aus) oder \`reminder_at\` ersetzt den Standard. Das tägliche
 Morgen-Briefing: \`get_briefing\`, \`save_briefing\`. Wetter am konfigurierten Ort:
 \`get_weather\` (ohne Ort meldet es „nicht konfiguriert").
+
+### Podcasts und Erklärvideos (Tabellen \`podcast_episodes\`, \`explainer_videos\`)
+Fertige Folgen (eine MP3 mit Kapitelmarken, eine oder mehrere Stimmen) und Erklärvideos (eine
+MP4 mit Vorschaubild, ein Erzähler, Kapitel) zum Hören und Ansehen, je einem Projekt zugeordnet.
+Larvis erzeugt nichts davon: sie entstehen außerhalb (etwa mit dem Claude-Code-Plugin
+„explainers") und kommen über \`scripts/podcasts/upload.mjs\` bzw. \`scripts/videos/upload.mjs\`
+herein. Folge und Video mit demselben Slug gehören zum selben Thema und stehen beieinander. Tab
+\`/podcasts\` (Folge unter \`/podcasts/<slug>\`, Video unter \`/podcasts/<slug>/video\`) und die
+Projektseite; Hör- und Sehstand liegen in \`podcast_progress\` und \`explainer_video_progress\`.
+Nur lesend über MCP: \`podcast_list\`, \`explainer_video_list\`.
 
 ### Optionale Module: Learnweb und Mensa
 Beide sind standardmäßig aus und haben dann keine Tools; sie betreffen die Uni Münster.

@@ -1,4 +1,4 @@
-import { Archive, CalendarDays, FolderTree, GraduationCap, Hammer, House, Inbox, Lightbulb, ListChecks, MapPin, MoreHorizontal, Users } from 'lucide-react';
+import { Archive, CalendarDays, FolderTree, GraduationCap, Hammer, Headphones, House, Inbox, Lightbulb, ListChecks, MapPin, MoreHorizontal, Users } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { MODULES } from '../lib/modules';
 
@@ -17,6 +17,8 @@ const LEARNINGS: NavItem = { to: '/learnings', label: 'Learnings', icon: Lightbu
 // Optionales Modul (Moodle der Uni Münster): nur mit VITE_LEARNWEB_ENABLED in der Navigation.
 const LEARNWEB: NavItem = { to: '/learnweb', label: 'Learnweb', icon: GraduationCap };
 const OPTIONAL = (item: NavItem, on: boolean): NavItem[] => (on ? [item] : []);
+// Folgen (Tabelle podcast_episodes) und Erklärvideos (explainer_videos), je einem Projekt zugeordnet.
+const PODCASTS: NavItem = { to: '/podcasts', label: 'Podcasts', icon: Headphones };
 const KALENDER: NavItem = { to: '/calendar', label: 'Kalender', icon: CalendarDays };
 const KONTAKTE: NavItem = { to: '/contacts', label: 'Kontakte', icon: Users };
 // Stammdaten für Termin-Orte (Fahrzeit ab dem Heimatort, Aliase); der Termin-Editor schlägt sie vor.
@@ -37,6 +39,7 @@ export const NAV_ITEMS: NavItem[] = [
   PROJEKTE,
   LEARNINGS,
   ...OPTIONAL(LEARNWEB, MODULES.learnweb),
+  PODCASTS,
   INBOX,
   MACHEN,
   KALENDER,
@@ -50,4 +53,4 @@ export const BOTTOM_NAV: NavItem[] = [TODOS, PROJEKTE, HEUTE, KALENDER, MEHR];
 
 // Ziele, die es nicht in die Bottom-Bar geschafft haben — die „Mehr"-Seite
 // zeigt aber alle NAV_ITEMS. Bei diesen Routen leuchtet der Mehr-Tab.
-export const MORE_ROUTES: string[] = [MEHR.to, LEARNINGS.to, LEARNWEB.to, INBOX.to, MACHEN.to, KONTAKTE.to, ORTE.to, ARCHIV.to];
+export const MORE_ROUTES: string[] = [MEHR.to, LEARNINGS.to, LEARNWEB.to, PODCASTS.to, INBOX.to, MACHEN.to, KONTAKTE.to, ORTE.to, ARCHIV.to];

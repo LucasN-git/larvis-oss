@@ -355,6 +355,103 @@ export type Database = {
           },
         ]
       }
+      explainer_video_progress: {
+        Row: {
+          completed: boolean
+          position_s: number
+          updated_at: string
+          video_id: string
+          watched_at: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          completed?: boolean
+          position_s?: number
+          updated_at?: string
+          video_id: string
+          watched_at?: string | null
+        }
+        Update: {
+          completed?: boolean
+          position_s?: number
+          updated_at?: string
+          video_id?: string
+          watched_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "explainer_video_progress_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: true
+            referencedRelation: "explainer_videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      explainer_videos: {
+        Row: {
+          chapters: Json
+          created_at: string
+          deleted_at: string | null
+          description_md: string
+          duration_s: number | null
+          id: string
+          narrator: Json
+          poster_path: string | null
+          project_id: string | null
+          search: unknown
+          slug: string
+          sort_order: number
+          subtitle: string
+          title: string
+          updated_at: string
+          video_path: string | null
+        }
+        ComputedFields: never
+        Insert: {
+          chapters?: Json
+          created_at?: string
+          deleted_at?: string | null
+          description_md?: string
+          duration_s?: number | null
+          id?: string
+          narrator?: Json
+          poster_path?: string | null
+          project_id?: string | null
+          slug: string
+          sort_order?: number
+          subtitle?: string
+          title: string
+          updated_at?: string
+          video_path?: string | null
+        }
+        Update: {
+          chapters?: Json
+          created_at?: string
+          deleted_at?: string | null
+          description_md?: string
+          duration_s?: number | null
+          id?: string
+          narrator?: Json
+          poster_path?: string | null
+          project_id?: string | null
+          slug?: string
+          sort_order?: number
+          subtitle?: string
+          title?: string
+          updated_at?: string
+          video_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "explainer_videos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbox: {
         Row: {
           content: string
@@ -1206,6 +1303,103 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      podcast_episodes: {
+        Row: {
+          audio_path: string | null
+          chapters: Json
+          created_at: string
+          deleted_at: string | null
+          description_md: string
+          duration_s: number | null
+          id: string
+          project_id: string | null
+          search: unknown
+          share_video_path: string | null
+          slug: string
+          sort_order: number
+          subtitle: string
+          title: string
+          updated_at: string
+          voices: Json
+        }
+        ComputedFields: never
+        Insert: {
+          audio_path?: string | null
+          chapters?: Json
+          created_at?: string
+          deleted_at?: string | null
+          description_md?: string
+          duration_s?: number | null
+          id?: string
+          project_id?: string | null
+          share_video_path?: string | null
+          slug: string
+          sort_order?: number
+          subtitle?: string
+          title: string
+          updated_at?: string
+          voices?: Json
+        }
+        Update: {
+          audio_path?: string | null
+          chapters?: Json
+          created_at?: string
+          deleted_at?: string | null
+          description_md?: string
+          duration_s?: number | null
+          id?: string
+          project_id?: string | null
+          share_video_path?: string | null
+          slug?: string
+          sort_order?: number
+          subtitle?: string
+          title?: string
+          updated_at?: string
+          voices?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcast_episodes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      podcast_progress: {
+        Row: {
+          completed: boolean
+          episode_id: string
+          listened_at: string | null
+          position_s: number
+          updated_at: string
+        }
+        ComputedFields: never
+        Insert: {
+          completed?: boolean
+          episode_id: string
+          listened_at?: string | null
+          position_s?: number
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          episode_id?: string
+          listened_at?: string | null
+          position_s?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "podcast_progress_episode_id_fkey"
+            columns: ["episode_id"]
+            isOneToOne: true
+            referencedRelation: "podcast_episodes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {

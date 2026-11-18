@@ -18,6 +18,8 @@ import { registerLearnwebTools } from './tools/learnweb.js';
 import { registerMemoryTools } from './tools/memories.js';
 import { registerLearningTools } from './tools/learnings.js';
 import { registerOverviewTools } from './tools/overview.js';
+import { registerPodcastTools } from './tools/podcasts.js';
+import { registerExplainerVideoTools } from './tools/explainerVideos.js';
 import { readConfig, type LarvisConfig } from './config.js';
 
 /**
@@ -51,6 +53,8 @@ export function createLarvisServer(config: LarvisConfig = readConfig()): McpServ
   if (config.learnweb) registerLearnwebTools(server);
   registerMemoryTools(server);
   registerLearningTools(server);
+  registerPodcastTools(server);
+  registerExplainerVideoTools(server);
   registerOverviewTools(server);
 
   return server;

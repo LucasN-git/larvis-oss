@@ -14,6 +14,7 @@ import { Personal } from './routes/Personal';
 import { Learnings } from './routes/Learnings';
 import { Inbox } from './routes/Inbox';
 import { Machen } from './routes/Machen';
+import { Podcasts } from './routes/Podcasts';
 import { Learnweb } from './routes/Learnweb';
 import { LearnwebCourse } from './routes/LearnwebCourse';
 import { LearnwebVideo } from './routes/LearnwebVideo';
@@ -56,6 +57,9 @@ export function App() {
                       <Route path="learnweb/:id/video/:videoId" element={<LearnwebVideo />} />
                     </>
                   )}
+                  {/* Folgen unter /podcasts/<slug>, Erklärvideos unter /podcasts/<slug>/video. */}
+                  <Route path="podcasts/:slug?" element={<Podcasts />} />
+                  <Route path="podcasts/:slug/video" element={<Podcasts video />} />
                   <Route path="inbox" element={<Inbox />} />
                   <Route path="machen" element={<Machen />} />
                   <Route path="calendar" element={<Calendar />} />
